@@ -133,7 +133,7 @@ def build_gameplay():
 
     woman = load("/Game/Characters/SK_WomanSaree/SK_WomanSaree")
     if woman:
-        w = spawn(unreal.GIScriptedWalker, unreal.Vector(1700, 85, 0), unreal.Rotator(0, 180, 0), label="SareeWoman")
+        w = spawn(unreal.GIScriptedWalker, unreal.Vector(1700, 85, 0), unreal.Rotator(roll=0, pitch=0, yaw=180), label="SareeWoman")
         w.set_editor_property("mesh", woman)
         w.set_editor_property("end_point", unreal.Vector(-500, 95, 0))
         w.set_editor_property("speed", 100.0)
@@ -145,7 +145,7 @@ def build_gameplay():
     if not kids:
         kids = [m for m in (load(f"/Game/Characters/{n}/{n}") for n in ("SK_Teen", "SK_BoyKurta")) if m]
     log("trial kids", [k.get_name() for k in kids])
-    g = spawn(unreal.GICricketGame, unreal.Vector(3350, -420, 0), unreal.Rotator(0, 90, 0), label="Cricket")
+    g = spawn(unreal.GICricketGame, unreal.Vector(3350, -420, 0), unreal.Rotator(roll=0, pitch=0, yaw=90), label="Cricket")
     g.set_editor_property("kid_meshes", kids)
     for prop, n in (("stumps_mesh", "Cricket_Stumps"), ("bat_mesh", "Cricket_Bat"), ("ball_mesh", "Cricket_Ball")):
         m = mesh(n)

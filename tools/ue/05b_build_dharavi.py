@@ -242,12 +242,12 @@ def build_gameplay(lanes, spots, props):
     spawn(unreal.PlayerStart, PLAYER_START, unreal.Rotator(roll=0.0, pitch=0.0, yaw=90.0), label="PlayerStart")
     sc_mesh = mesh("ScooterActiva")
     if sc_mesh:
-        v = spawn(unreal.GIBike, unreal.Vector(600, 520, 90), unreal.Rotator(0, 0, 0), label="Drivable_Scooter")
+        v = spawn(unreal.GIBike, unreal.Vector(600, 520, 90), unreal.Rotator(roll=0, pitch=0, yaw=0), label="Drivable_Scooter")
         v.set_editor_property("mesh_override", sc_mesh)
         v.set_editor_property("mesh_yaw_override", 0.0)
     am = mesh("AutoMumbai")
     if am:
-        v = spawn(unreal.GIBike, unreal.Vector(-1200, -520, 95), unreal.Rotator(0, 180, 0), label="Drivable_Auto")
+        v = spawn(unreal.GIBike, unreal.Vector(-1200, -520, 95), unreal.Rotator(roll=0, pitch=0, yaw=180), label="Drivable_Auto")
         v.set_editor_property("mesh_override", am)
         v.set_editor_property("mesh_yaw_override", 0.0)
         v.set_editor_property("four_wheeler", True)
@@ -273,7 +273,7 @@ def build_gameplay(lanes, spots, props):
     traffic.set_editor_property("vehicle_mesh_yaws", [float(y) for _, y in fleet])
 
     # chai tapri on the main road
-    chai = spawn(unreal.GIChaiStall, CHAI, unreal.Rotator(0, 0, 0), label="ChaiStall")
+    chai = spawn(unreal.GIChaiStall, CHAI, unreal.Rotator(roll=0, pitch=0, yaw=0), label="ChaiStall")
     vendor = load("/Game/Characters/SK_ManStriped/SK_ManStriped")
     if vendor:
         chai.set_editor_property("vendor_mesh", vendor)
@@ -292,7 +292,7 @@ def build_gameplay(lanes, spots, props):
     for label, loc, yaw, pitch_len, half_w, fielders in (
             ("Cricket_Square", unreal.Vector(SQUARE[0] + 350, (SQUARE[2] + SQUARE[3]) / 2, 0), 0.0, 1400.0, 600.0, 5),
             ("Cricket_ChawlLane", unreal.Vector(CRICKET_LANE[0], CRICKET_LANE[1], 0), 0.0, 1600.0, 330.0, 6)):
-        g = spawn(unreal.GICricketGame, loc, unreal.Rotator(0, yaw, 0), label=label)
+        g = spawn(unreal.GICricketGame, loc, unreal.Rotator(roll=0, pitch=0, yaw=yaw), label=label)
         g.set_editor_property("kid_meshes", kid_meshes)
         for prop, n in (("stumps_mesh", "Cricket_Stumps"), ("bat_mesh", "Cricket_Bat"), ("ball_mesh", "Cricket_Ball")):
             m = mesh(n)

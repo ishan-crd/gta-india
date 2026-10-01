@@ -137,7 +137,7 @@ class Scatter:
 
 
 def spawn(cls, loc, rot=None, label=None):
-    a = eas.spawn_actor_from_class(cls, loc, rot or unreal.Rotator(0, 0, 0))
+    a = eas.spawn_actor_from_class(cls, loc, rot or unreal.Rotator(roll=0, pitch=0, yaw=0))
     if label:
         a.set_actor_label(label)
     return a
@@ -656,7 +656,7 @@ def build_gameplay(lanes, spots):
         smc.set_material(0, mi)
 
     spawn(unreal.PlayerStart, PLAYER_START, unreal.Rotator(roll=0.0, pitch=0.0, yaw=0.0), label="PlayerStart")
-    spawn(unreal.GIBike, BIKE_POS, unreal.Rotator(0, 0, 0), label="Bike_Pulsar")
+    spawn(unreal.GIBike, BIKE_POS, unreal.Rotator(roll=0, pitch=0, yaw=0), label="Bike_Pulsar")
     spawn(unreal.GIBike, unreal.Vector(-11500, 7600, TOP_Z + 70), unreal.Rotator(roll=0.0, pitch=0.0, yaw=180.0), label="Bike_Pulsar2")
 
     train = spawn(unreal.GITrain, unreal.Vector(-30000, RAIL_Y, TOP_Z + 15), label="Train")
@@ -688,7 +688,7 @@ def build_gameplay(lanes, spots):
     for n, yaw, loc in (("AutoRickshaw", 180.0, unreal.Vector(-11200, 7650, TOP_Z + 90)), ("CarWagonR", 180.0, unreal.Vector(-9500, 7700, TOP_Z + 90))):
         m = mesh(n)
         if m:
-            v = spawn(unreal.GIBike, loc, unreal.Rotator(0, 0, 0), label="Drivable_" + n)
+            v = spawn(unreal.GIBike, loc, unreal.Rotator(roll=0, pitch=0, yaw=0), label="Drivable_" + n)
             v.set_editor_property("mesh_override", m)
             v.set_editor_property("mesh_yaw_override", yaw)
             v.set_editor_property("four_wheeler", True)
