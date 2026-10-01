@@ -1,0 +1,4 @@
+k1_train_roof train
+k2_traffic_headon cam 5000 7170 1380 -5 180
+k3_traffic_headon2 cam -20000 7630 1380 -5 0
+k4_ride ride

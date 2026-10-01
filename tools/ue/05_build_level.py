@@ -677,14 +677,15 @@ def build_gameplay(lanes, spots):
     traffic.set_editor_property("lanes", lanes_t)
     traffic.set_editor_property("min_x", float(GHAT_X0 - 8000))
     traffic.set_editor_property("max_x", float(GHAT_X1 + 8000))
-    # (mesh, yaw so its front faces the travel direction): AutoRickshaw2 is modelled facing -X.
-    fleet = [("AutoRickshaw", 0.0), ("AutoRickshaw2", 180.0), ("AutoRickshaw", 0.0), ("BikePulsar135", 0.0), ("BikePulsar150", 0.0),
-             ("BikePulsar135", 0.0), ("CarWagonR", 0.0), ("CarNano", 0.0)]
+    # (mesh, yaw so its front faces the travel direction). The source models have their fronts on -X,
+    # except AutoRickshaw2 (+X).
+    fleet = [("AutoRickshaw", 180.0), ("AutoRickshaw2", 0.0), ("AutoRickshaw", 180.0), ("BikePulsar135", 180.0), ("BikePulsar150", 180.0),
+             ("BikePulsar135", 180.0), ("CarWagonR", 180.0), ("CarNano", 180.0)]
     fleet = [(mesh(n), y) for n, y in fleet if mesh(n)]
     traffic.set_editor_property("vehicle_meshes", [m for m, _ in fleet])
     traffic.set_editor_property("vehicle_mesh_yaws", [float(y) for _, y in fleet])
     # Parked vehicles you can drive (F): an auto by the dhaba and a WagonR down the road.
-    for n, yaw, loc in (("AutoRickshaw", 0.0, unreal.Vector(-11200, 7650, TOP_Z + 90)), ("CarWagonR", 0.0, unreal.Vector(-9500, 7700, TOP_Z + 90))):
+    for n, yaw, loc in (("AutoRickshaw", 180.0, unreal.Vector(-11200, 7650, TOP_Z + 90)), ("CarWagonR", 180.0, unreal.Vector(-9500, 7700, TOP_Z + 90))):
         m = mesh(n)
         if m:
             v = spawn(unreal.GIBike, loc, unreal.Rotator(0, 0, 0), label="Drivable_" + n)

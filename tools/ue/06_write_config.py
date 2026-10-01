@@ -2,7 +2,7 @@
 """Write the [/Script/GTAIndia.GIAssetSettings] section of Config/DefaultGame.ini from the assets
 that actually exist in the project's Content folder. Plain Python (run on the Linux PC).
 
-Usage: python3 06_write_config.py [--bike-yaw 0] [--train-yaw 0] [--box-bone Spine2]
+Usage: python3 06_write_config.py [--bike-yaw 180] [--train-yaw 0] [--box-bone Spine2]
 """
 import argparse
 import json
@@ -29,7 +29,7 @@ def obj(game_path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--bike", default="BikePulsar150")
-    ap.add_argument("--bike-yaw", type=float, default=0.0)
+    ap.add_argument("--bike-yaw", type=float, default=180.0)  # Pulsar model front is on -X
     ap.add_argument("--bike-scale", type=float, default=1.0)
     ap.add_argument("--train", default="Train_EMU_Car")
     ap.add_argument("--train-engine", default="Train_EMU_Cab")
