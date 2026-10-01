@@ -148,14 +148,15 @@ void AGITrain::BuildRiders()
 			float Yaw;
 			const float Roll = Rand.FRand();
 			const float XAlong = Rand.FRandRange(-HalfLen, HalfLen);
-			if (Roll < 0.4f)
+			const float DoorX = DoorOffsets.Num() > 0 ? DoorOffsets[Rand.RandRange(0, DoorOffsets.Num() - 1)] : CarBox.GetExtent().X - 90.f;
+			if (Roll < 0.3f)
 			{
 				// Sitting on the roof edge, legs dangling outside.
 				const float Side = Rand.FRand() < 0.5f ? -1.f : 1.f;
 				Pos = FVector(LocalCenter.X + XAlong, LocalCenter.Y + Side * (HalfWid - 25.f), Roof - (UGIAnimInstance::GetSitPelvisHeight() - 8.f));
 				Yaw = Side > 0.f ? 90.f : -90.f;
 			}
-			else if (Roll < 0.88f)
+			else if (Roll < 0.72f)
 			{
 				// Sitting in the middle of the roof.
 				Pos = FVector(LocalCenter.X + XAlong, LocalCenter.Y + Rand.FRandRange(-HalfWid * 0.4f, HalfWid * 0.4f), Roof - (UGIAnimInstance::GetSitPelvisHeight() - 8.f));
@@ -172,12 +173,22 @@ void AGITrain::BuildRiders()
 			}
 			else
 			{
-				// Hanging from a door at the car end.
 				const float Side = Rand.FRand() < 0.5f ? -1.f : 1.f;
-				const float End = Rand.FRand() < 0.5f ? -1.f : 1.f;
-				Pos = FVector(LocalCenter.X + End * (CarBox.GetExtent().X - 90.f), LocalCenter.Y + Side * (HalfWid + 22.f), Roof - CarHeight * 0.55f - 60.f);
-				Yaw = Side > 0.f ? 90.f : -90.f;
-				Mode = EGIPoseMode::Hang;
+				const float Floor = GetActorTransform().InverseTransformPosition(CarBox.Min).Z + 125.f;
+				if (Rand.FRand() < 0.6f)
+				{
+					// Hanging out of an open door, holding the grab pole.
+					Pos = FVector(LocalCenter.X + DoorX + Rand.FRandRange(-45.f, 45.f), LocalCenter.Y + Side * (HalfWid + 22.f), Roof - CarHeight * 0.55f - 60.f);
+					Yaw = Side > 0.f ? 90.f : -90.f;
+					Mode = EGIPoseMode::Hang;
+				}
+				else
+				{
+					// Standing packed in the doorway, looking out.
+					Pos = FVector(LocalCenter.X + DoorX + Rand.FRandRange(-40.f, 40.f), LocalCenter.Y + Side * (HalfWid - Rand.FRandRange(25.f, 70.f)), Floor);
+					Yaw = (Side > 0.f ? 90.f : -90.f) + Rand.FRandRange(-35.f, 35.f);
+					Mode = Rand.FRand() < 0.5f ? EGIPoseMode::Talk : EGIPoseMode::Locomotion;
+				}
 			}
 			// Mesh faces +Y in its own space, so add the standard -90 yaw.
 			const FRotator MeshRot(0.f, Yaw - 90.f, 0.f);

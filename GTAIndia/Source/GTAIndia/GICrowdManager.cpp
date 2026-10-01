@@ -12,6 +12,7 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
+#include "GameFramework/PlayerStart.h"
 
 static const FQuat GMeshBase = FRotator(0.f, -90.f, 0.f).Quaternion();
 
@@ -108,6 +109,141 @@ USkeletalMeshComponent* AGICrowdManager::SpawnComp(FRandomStream& Rand, FName* O
 	return C;
 }
 
+FVector AGICrowdManager::BubbleCenter() const
+{
+	if (const APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0))
+	{
+		return Player->GetActorLocation();
+	}
+	if (const AActor* Start = UGameplayStatics::GetActorOfClass(this, APlayerStart::StaticClass()))
+	{
+		return Start->GetActorLocation();
+	}
+	return Lanes.Num() > 0 ? Lanes[0].Start : FVector::ZeroVector;
+}
+
+void AGICrowdManager::GatherLanes(const FVector& Center, TArray<FLaneCand>& Out) const
+{
+	Out.Reset();
+	const float R = BubbleRadius * 0.95f;
+	for (int32 l = 0; l < Lanes.Num(); ++l)
+	{
+		const FGIWalkLane& L = Lanes[l];
+		const FVector D = L.End - L.Start;
+		const float Len2 = FMath::Max(D.SizeSquared2D(), 1.f);
+		const float T = FMath::Clamp(((Center.X - L.Start.X) * D.X + (Center.Y - L.Start.Y) * D.Y) / Len2, 0.f, 1.f);
+		const float Dist = FVector::Dist2D(L.Start + D * T, Center);
+		if (Dist < R && FMath::Abs(L.Start.Z + D.Z * T - Center.Z) < 2500.f)
+		{
+			FLaneCand C;
+			C.Lane = l;
+			C.T = T;
+			C.HalfSpan = FMath::Sqrt(R * R - Dist * Dist) / FMath::Sqrt(Len2);
+			C.Weight = FMath::Max(L.Weight, 0.01f) * FMath::Min(1.f, C.HalfSpan * FMath::Sqrt(Len2) / 3000.f);
+			Out.Add(C);
+		}
+	}
+}
+
+bool AGICrowdManager::IsInView(const FVector& Pos, const FVector& Cam, const FVector& CamFwd)
+{
+	const FVector D = Pos + FVector(0, 0, 90.f) - Cam;
+	const float Dist = D.Size();
+	return Dist < 9000.f && FVector::DotProduct(D / FMath::Max(Dist, 1.f), CamFwd) > 0.42f;
+}
+
+bool AGICrowdManager::PickLanePoint(const TArray<FLaneCand>& Cands, const FVector& Center, const FVector* Cam, const FVector& CamFwd,
+	FRandomStream& Rand, int32& OutLane, float& OutT, float& OutLat) const
+{
+	float Total = 0.f;
+	for (const FLaneCand& C : Cands)
+	{
+		Total += C.Weight;
+	}
+	if (Total <= 0.f)
+	{
+		return false;
+	}
+	for (int32 Try = 0; Try < 6; ++Try)
+	{
+		float Pick = Rand.FRandRange(0.f, Total);
+		const FLaneCand* C = &Cands[0];
+		for (const FLaneCand& X : Cands)
+		{
+			Pick -= X.Weight;
+			if (Pick <= 0.f)
+			{
+				C = &X;
+				break;
+			}
+		}
+		const FGIWalkLane& L = Lanes[C->Lane];
+		const float T = FMath::Clamp(C->T + Rand.FRandRange(-C->HalfSpan, C->HalfSpan), 0.f, 1.f);
+		const float Lat = Rand.FRandRange(-0.5f, 0.5f) * L.Width;
+		const FVector Pos = L.Start + (L.End - L.Start) * T;
+		if (Cam && (FVector::Dist2D(Pos, Center) < 1500.f || IsInView(Pos, *Cam, CamFwd)))
+		{
+			continue;
+		}
+		OutLane = C->Lane;
+		OutT = T;
+		OutLat = Lat;
+		return true;
+	}
+	return false;
+}
+
+void AGICrowdManager::PlaceWalker(FPerson& P, int32 Lane, float T, float Lat, FRandomStream& Rand)
+{
+	P.Lane = Lane;
+	P.T = T;
+	P.Lateral = Lat;
+	P.Dir = Rand.FRand() < 0.5f ? -1.f : 1.f;
+	P.PauseTime = 0.f;
+	P.Dodge = 0.f;
+	const FGIWalkLane& L = Lanes[Lane];
+	const FVector Axis = L.End - L.Start;
+	const FVector Dir2D = FVector(Axis.X, Axis.Y, 0.f).GetSafeNormal();
+	FVector Pos = L.Start + Axis * T + FVector(-Dir2D.Y, Dir2D.X, 0.f) * Lat;
+	P.GroundZ = Pos.Z;
+	Ground(Pos, P.GroundZ);
+	Pos.Z = P.GroundZ;
+	P.Yaw = (Dir2D * P.Dir).Rotation().Yaw;
+	if (P.Comp)
+	{
+		P.Comp->SetWorldLocationAndRotation(Pos, FRotator(0.f, P.Yaw - 90.f, 0.f));
+	}
+}
+
+void AGICrowdManager::PlaceStatic(FPerson& P, int32 SpotIdx, FRandomStream& Rand)
+{
+	if (P.Spot != INDEX_NONE && SpotUsed.IsValidIndex(P.Spot))
+	{
+		SpotUsed[P.Spot] = false;
+	}
+	P.Spot = SpotIdx;
+	SpotUsed[SpotIdx] = true;
+	const FGIStaticSpot& S = Spots[SpotIdx];
+	float Z = S.Location.Z;
+	if (!S.bFixedZ)
+	{
+		Ground(S.Location, Z);
+	}
+	const bool bSitting = S.Mode == EGIPoseMode::Sit || S.Mode == EGIPoseMode::SitArmsOut || S.Mode == EGIPoseMode::SitTalk;
+	P.Comp->SetWorldLocationAndRotation(FVector(S.Location.X, S.Location.Y, Z + (bSitting ? -(UGIAnimInstance::GetSitPelvisHeight() - 12.f) : 0.f)),
+		FRotator(0.f, S.Yaw - 90.f, 0.f));
+	if (P.Anim)
+	{
+		P.Anim->Params.Mode = S.Mode;
+		P.Anim->Params.MeshBaseRotation = GMeshBase;
+		P.Anim->Params.TimeOffset = Rand.FRandRange(0.f, 8.f);
+	}
+	P.BaseMode = S.Mode;
+	P.BaseYaw = S.Yaw;
+	P.Yaw = S.Yaw;
+	P.bSitting = bSitting;
+}
+
 void AGICrowdManager::Rebuild()
 {
 	Clear();
@@ -118,29 +254,29 @@ void AGICrowdManager::Rebuild()
 	}
 	Budget = FMath::RoundToInt(Budget * BudgetShare);
 	FRandomStream Rand(4321);
+	BubbleRand.Initialize(777);
+	SpotUsed.Init(false, Spots.Num());
 
 	TotalLaneWeight = 0.f;
 	for (const FGIWalkLane& L : Lanes)
 	{
 		TotalLaneWeight += FMath::Max(L.Weight, 0.f);
 	}
+	const FVector Center = BubbleCenter();
+	TArray<FLaneCand> Cands;
+	GatherLanes(Center, Cands);
 
-	const int32 NumWalkers = Lanes.Num() > 0 ? FMath::RoundToInt(Budget * WalkerShare) : 0;
+	const int32 NumWalkers = Cands.Num() > 0 ? FMath::RoundToInt(Budget * WalkerShare) : 0;
 	const int32 NumStatic = FMath::Min(Budget - NumWalkers, Spots.Num());
 
-	// Walkers distributed by lane weight.
+	// Walkers on lanes around the player.
 	for (int32 i = 0; i < NumWalkers; ++i)
 	{
-		float Pick = Rand.FRandRange(0.f, TotalLaneWeight);
-		int32 LaneIdx = 0;
-		for (int32 l = 0; l < Lanes.Num(); ++l)
+		int32 Lane;
+		float T, Lat;
+		if (!PickLanePoint(Cands, Center, nullptr, FVector::ForwardVector, Rand, Lane, T, Lat))
 		{
-			Pick -= FMath::Max(Lanes[l].Weight, 0.f);
-			if (Pick <= 0.f)
-			{
-				LaneIdx = l;
-				break;
-			}
+			break;
 		}
 		FName Gender;
 		USkeletalMeshComponent* C = SpawnComp(Rand, &Gender);
@@ -152,61 +288,103 @@ void AGICrowdManager::Rebuild()
 		P.Comp = C;
 		P.Gender = Gender;
 		P.Anim = Cast<UGIAnimInstance>(C->GetAnimInstance());
-		P.Lane = LaneIdx;
-		P.T = Rand.FRand();
-		P.Dir = Rand.FRand() < 0.5f ? -1.f : 1.f;
-		P.Lateral = Rand.FRandRange(-0.5f, 0.5f) * Lanes[LaneIdx].Width;
 		P.Speed = Rand.FRandRange(85.f, 145.f);
 		P.NextTrace = Rand.FRandRange(0.f, 0.3f);
-		const FVector Pos = FMath::Lerp(Lanes[LaneIdx].Start, Lanes[LaneIdx].End, P.T);
-		P.GroundZ = Pos.Z;
-		Ground(Pos, P.GroundZ);
 		if (P.Anim)
 		{
 			P.Anim->Params.MeshBaseRotation = GMeshBase;
 			P.Anim->Params.TimeOffset = Rand.FRandRange(0.f, 5.f);
 		}
+		PlaceWalker(P, Lane, T, Lat, Rand);
 		People.Add(P);
 	}
 
-	// Static people, highest priority first.
+	// Static people on the spots nearest the player (priority breaks ties).
 	TArray<int32> Order;
 	for (int32 i = 0; i < Spots.Num(); ++i)
 	{
 		Order.Add(i);
 	}
-	Order.Sort([this](int32 A, int32 B) { return Spots[A].Priority > Spots[B].Priority; });
+	Order.Sort([this, &Center](int32 A, int32 B)
+	{
+		const float SA = FVector::Dist2D(Spots[A].Location, Center) - Spots[A].Priority * 1500.f;
+		const float SB = FVector::Dist2D(Spots[B].Location, Center) - Spots[B].Priority * 1500.f;
+		return SA < SB;
+	});
 	for (int32 i = 0; i < NumStatic; ++i)
 	{
-		const FGIStaticSpot& S = Spots[Order[i]];
 		FName Gender;
 		USkeletalMeshComponent* C = SpawnComp(Rand, &Gender);
 		if (!C)
 		{
 			break;
 		}
-		float Z = S.Location.Z;
-		if (!S.bFixedZ)
-		{
-			Ground(S.Location, Z);
-		}
-		const bool bSitting = S.Mode == EGIPoseMode::Sit || S.Mode == EGIPoseMode::SitArmsOut || S.Mode == EGIPoseMode::SitTalk;
-		C->SetWorldLocationAndRotation(FVector(S.Location.X, S.Location.Y, Z + (bSitting ? -(UGIAnimInstance::GetSitPelvisHeight() - 12.f) : 0.f)), FRotator(0.f, S.Yaw - 90.f, 0.f));
-		if (UGIAnimInstance* Anim = Cast<UGIAnimInstance>(C->GetAnimInstance()))
-		{
-			Anim->Params.Mode = S.Mode;
-			Anim->Params.MeshBaseRotation = GMeshBase;
-			Anim->Params.TimeOffset = Rand.FRandRange(0.f, 8.f);
-		}
 		FPerson P;
 		P.Comp = C;
 		P.Anim = Cast<UGIAnimInstance>(C->GetAnimInstance());
 		P.Gender = Gender;
-		P.BaseMode = S.Mode;
-		P.BaseYaw = S.Yaw;
-		P.Yaw = S.Yaw;
-		P.bSitting = bSitting;
+		PlaceStatic(P, Order[i], Rand);
 		People.Add(P); // Lane = INDEX_NONE -> static
+	}
+}
+
+void AGICrowdManager::UpdateBubble()
+{
+	const APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+	if (!PC || !PC->PlayerCameraManager || People.Num() == 0)
+	{
+		return;
+	}
+	const FVector Center = BubbleCenter();
+	const FVector Cam = PC->PlayerCameraManager->GetCameraLocation();
+	const FVector CamFwd = PC->PlayerCameraManager->GetCameraRotation().Vector();
+	const float R2 = FMath::Square(BubbleRadius);
+
+	TArray<FLaneCand> Cands;
+	GatherLanes(Center, Cands);
+	TArray<int32> FreeSpots;
+	for (int32 i = 0; i < Spots.Num(); ++i)
+	{
+		if (!SpotUsed[i] && FVector::DistSquared2D(Spots[i].Location, Center) < R2 * 0.8f && FMath::Abs(Spots[i].Location.Z - Center.Z) < 2500.f
+			&& FVector::Dist2D(Spots[i].Location, Center) > 1500.f && !IsInView(Spots[i].Location, Cam, CamFwd))
+		{
+			FreeSpots.Add(i);
+		}
+	}
+
+	int32 Moved = 0;
+	for (FPerson& P : People)
+	{
+		if (Moved >= 24)
+		{
+			break;
+		}
+		if (!P.Comp || P.AngryTimer > 0.f)
+		{
+			continue;
+		}
+		const FVector Pos = P.Comp->GetComponentLocation();
+		if (FVector::DistSquared2D(Pos, Center) < R2 || P.Comp->WasRecentlyRendered(0.25f))
+		{
+			continue;
+		}
+		if (P.Lane != INDEX_NONE)
+		{
+			int32 Lane;
+			float T, Lat;
+			if (Cands.Num() > 0 && PickLanePoint(Cands, Center, &Cam, CamFwd, BubbleRand, Lane, T, Lat))
+			{
+				PlaceWalker(P, Lane, T, Lat, BubbleRand);
+				++Moved;
+			}
+		}
+		else if (FreeSpots.Num() > 0)
+		{
+			const int32 k = BubbleRand.RandRange(0, FreeSpots.Num() - 1);
+			PlaceStatic(P, FreeSpots[k], BubbleRand);
+			FreeSpots.RemoveAtSwap(k);
+			++Moved;
+		}
 	}
 }
 
@@ -248,6 +426,12 @@ void AGICrowdManager::Tick(float DeltaSeconds)
 	{
 		SignificanceTimer = 0.5f;
 		UpdateSignificance();
+	}
+	BubbleTimer -= DeltaSeconds;
+	if (BubbleTimer <= 0.f)
+	{
+		BubbleTimer = 0.3f;
+		UpdateBubble();
 	}
 	UpdateSpeech(DeltaSeconds);
 	const float Now = GetWorld()->GetTimeSeconds();

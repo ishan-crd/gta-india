@@ -13,7 +13,7 @@ UGIGameUserSettings* UGIGameUserSettings::Get()
 
 int32 UGIGameUserSettings::GetCrowdBudget() const
 {
-	static const int32 Budgets[] = { 80, 200, 360, 560 };
+	static const int32 Budgets[] = { 100, 240, 420, 640 };
 	return Budgets[FMath::Clamp(CrowdDensity, 0, 3)];
 }
 
@@ -80,7 +80,7 @@ void UGIGameUserSettings::SetToDefaults()
 	bMotionBlur = true;
 	bFilmGrain = false;
 	bVolumetricFog = true;
-	FieldOfView = 90.f;
+	FieldOfView = 75.f;
 	MouseSensitivity = 1.f;
 	bInvertY = false;
 	bShowFPS = false;

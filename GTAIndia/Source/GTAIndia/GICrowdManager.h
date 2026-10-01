@@ -55,6 +55,9 @@ public:
 	/** Share of this manager's budget that walks (rest fills static spots). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crowd") float WalkerShare = 0.6f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crowd") float CullDistance = 16000.f;
+	/** The crowd follows the player: people further than this (and off screen) are moved to free lanes /
+	 *  spots around the player, so the whole budget is spent where it is seen. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crowd") float BubbleRadius = 8500.f;
 
 	/** Rebuilds the crowd (called after the settings menu changes density). */
 	void Rebuild();
@@ -84,7 +87,27 @@ private:
 		EGIPoseMode BaseMode = EGIPoseMode::Locomotion;
 		float BaseYaw = 0.f;
 		bool bSitting = false;
+		int32 Spot = INDEX_NONE;
 	};
+
+	struct FLaneCand
+	{
+		int32 Lane = 0;
+		float T = 0.f;
+		float HalfSpan = 0.f;
+		float Weight = 0.f;
+	};
+	FVector BubbleCenter() const;
+	void GatherLanes(const FVector& Center, TArray<FLaneCand>& Out) const;
+	bool PickLanePoint(const TArray<FLaneCand>& Cands, const FVector& Center, const FVector* Cam, const FVector& CamFwd, FRandomStream& Rand,
+		int32& OutLane, float& OutT, float& OutLat) const;
+	static bool IsInView(const FVector& Pos, const FVector& Cam, const FVector& CamFwd);
+	void PlaceWalker(FPerson& P, int32 Lane, float T, float Lat, FRandomStream& Rand);
+	void PlaceStatic(FPerson& P, int32 SpotIdx, FRandomStream& Rand);
+	void UpdateBubble();
+	TArray<bool> SpotUsed;
+	float BubbleTimer = 0.f;
+	FRandomStream BubbleRand;
 
 	void Clear();
 	USkeletalMeshComponent* SpawnComp(FRandomStream& Rand, FName* OutGender = nullptr);
