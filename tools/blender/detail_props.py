@@ -187,6 +187,196 @@ def tangled_wires():
     return bm, ["M_WindowDark"]
 
 
+# ------------------------------------------------------------------ litter on land (no bobbing)
+LITTER_SLOTS = ["M_LitterPaper", "M_LitterPlastic", "M_LitterRed", "M_LitterBlue", "M_LitterYellow", "M_LitterSilver",
+                "M_LitterGreen", "M_LitterLeaf", "M_LitterMarigold", "M_LitterBrown"]
+
+
+def _merge(bm, sub, mat_index, offset, rot=0.0, tilt=0.0):
+    from mathutils import Matrix
+    M = Matrix.Translation(offset) @ Matrix.Rotation(rot, 4, "Z") @ Matrix.Rotation(tilt, 4, "X")
+    bmesh.ops.transform(sub, matrix=M, verts=sub.verts)
+    me = bpy.data.meshes.new("tmp")
+    sub.to_mesh(me)
+    sub.free()
+    n0 = len(bm.faces)
+    bm.from_mesh(me)
+    bm.faces.ensure_lookup_table()
+    for f in bm.faces[n0:]:
+        f.material_index = mat_index
+    bpy.data.meshes.remove(me)
+
+
+def _crumple(size, seed, flat=0.25):
+    sub = bmesh.new()
+    bmesh.ops.create_grid(sub, x_segments=4, y_segments=4, size=size * 0.5)
+    off = Vector((seed * 2.3, seed * 0.7, 0))
+    for v in sub.verts:
+        p = v.co * (4.0 / max(size, 0.01)) + off
+        v.co.z += abs(noise.noise(p)) * size * flat + 0.004
+        v.co.x += noise.noise(p + Vector((3, 0, 0))) * size * 0.15
+        v.co.y += noise.noise(p + Vector((0, 3, 0))) * size * 0.15
+    return sub
+
+
+def _ball(r, seed):
+    sub = bmesh.new()
+    bmesh.ops.create_icosphere(sub, subdivisions=1, radius=r)
+    for v in sub.verts:
+        v.co *= 1.0 + 0.35 * noise.noise(v.co * 30 + Vector((seed, 0, 0)))
+        v.co.z = v.co.z * 0.75 + r * 0.7
+    return sub
+
+
+def _cup(seed):
+    sub = bmesh.new()
+    bmesh.ops.create_cone(sub, cap_ends=False, segments=8, radius1=0.028, radius2=0.04, depth=0.09)
+    return sub
+
+
+def _plate(r):
+    sub = bmesh.new()
+    bmesh.ops.create_circle(sub, cap_ends=True, segments=10, radius=r)
+    for v in sub.verts:
+        v.co.z = 0.006 + (v.co.length / r) ** 2 * 0.015
+    return sub
+
+
+def _lying_bottle():
+    sub = bmesh.new()
+    bmesh.ops.create_cone(sub, cap_ends=True, segments=8, radius1=0.035, radius2=0.035, depth=0.22)
+    from mathutils import Matrix
+    bmesh.ops.rotate(sub, verts=sub.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(math.radians(90), 3, "Y"))
+    for v in sub.verts:
+        v.co.z += 0.035
+    return sub
+
+
+def _pick(rng, weights):
+    tot = sum(w for _, w in weights)
+    r = rng.uniform(0, tot)
+    for k, w in weights:
+        r -= w
+        if r <= 0:
+            return k
+    return weights[-1][0]
+
+
+def litter_patch(seed, radius, n, kinds=None):
+    """A patch of mixed street litter (paper, chip packets, polythene, cups, bottles, leaf plates, flowers)."""
+    rng = __import__("random").Random(seed)
+    bm = bmesh.new()
+    kinds = kinds or [("wrapper", 5), ("paper", 4), ("poly", 3), ("cup", 2), ("bottle", 1.2), ("plate", 1.5),
+                      ("leaf", 2), ("flower", 1.2)]
+    for i in range(n):
+        a = rng.uniform(0, math.tau)
+        rr = radius * math.sqrt(rng.random())
+        pos = Vector((math.cos(a) * rr, math.sin(a) * rr, 0.0))
+        k = _pick(rng, kinds)
+        rot = rng.uniform(0, math.tau)
+        if k == "wrapper":
+            _merge(bm, _crumple(rng.uniform(0.1, 0.2), seed * 31 + i, 0.4), rng.choice([2, 3, 4, 5, 6]), pos, rot)
+        elif k == "paper":
+            sub = _ball(rng.uniform(0.03, 0.06), i) if rng.random() < 0.5 else _crumple(rng.uniform(0.15, 0.28), seed + i, 0.15)
+            _merge(bm, sub, 0 if rng.random() < 0.7 else 9, pos, rot)
+        elif k == "poly":
+            _merge(bm, _crumple(rng.uniform(0.25, 0.5), seed * 7 + i, 0.3), rng.choice([1, 1, 2, 3, 6]), pos, rot)
+        elif k == "cup":
+            _merge(bm, _cup(i), 1 if rng.random() < 0.6 else 9, pos + Vector((0, 0, 0.04)), rot, math.radians(90))
+        elif k == "bottle":
+            _merge(bm, _lying_bottle(), rng.choice([1, 3, 6]), pos, rot)
+        elif k == "plate":
+            _merge(bm, _plate(rng.uniform(0.1, 0.15)), 7 if rng.random() < 0.6 else 1, pos, rot)
+        elif k == "leaf":
+            _merge(bm, _crumple(rng.uniform(0.06, 0.12), i, 0.1), 7 if rng.random() < 0.5 else 9, pos, rot)
+        else:
+            _merge(bm, _ball(0.03, i), 8, pos, rot)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return bm, LITTER_SLOTS
+
+
+def garbage_heap(seed, radius, height):
+    """Dumped garbage mound: dark compost/dirt dome studded with polythene, packets, plates and bottles."""
+    rng = __import__("random").Random(seed)
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=18, v_segments=8, radius=radius)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z < -0.01], context="VERTS")
+    for v in bm.verts:
+        n = noise.noise(v.co * 1.7 + Vector((seed, 0, 0)))
+        v.co.z = max(0.0, v.co.z) * (height / radius) * (1 + 0.3 * n)
+        v.co.x *= 1 + 0.25 * noise.noise(v.co * 0.9 + Vector((0, seed, 0)))
+        v.co.y *= 1 + 0.25 * noise.noise(v.co * 0.9 + Vector((seed, seed, 0)))
+    for f in bm.faces:
+        f.material_index = 10
+    for i in range(int(radius * radius * 55)):
+        a = rng.uniform(0, math.tau)
+        rr = radius * 0.95 * math.sqrt(rng.random())
+        z = height * max(0.0, 1 - (rr / radius) ** 2) ** 0.5
+        pos = Vector((math.cos(a) * rr, math.sin(a) * rr, z * 0.92))
+        tilt = (rr / radius) * 0.9
+        k = _pick(rng, [("poly", 5), ("wrapper", 4), ("paper", 2), ("plate", 1.5), ("bottle", 1)])
+        if k == "poly":
+            _merge(bm, _crumple(rng.uniform(0.3, 0.6), seed * 11 + i, 0.45), rng.choice([1, 1, 2, 3, 6, 9]), pos, a, tilt)
+        elif k == "wrapper":
+            _merge(bm, _crumple(rng.uniform(0.12, 0.22), i, 0.4), rng.choice([2, 3, 4, 5, 6]), pos, a, tilt)
+        elif k == "paper":
+            _merge(bm, _ball(rng.uniform(0.04, 0.07), i), 0, pos, a)
+        elif k == "plate":
+            _merge(bm, _plate(0.13), 7, pos, a, tilt)
+        else:
+            _merge(bm, _lying_bottle(), rng.choice([1, 3]), pos, a, tilt)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return bm, LITTER_SLOTS + ["M_LitterHeap"]
+
+
+def styro_bits(seed, n, spread):
+    """Floating white styrofoam / thermocol plates and chunks (the reference river is full of them)."""
+    rng = __import__("random").Random(seed)
+    bm = bmesh.new()
+    for i in range(n):
+        a = rng.uniform(0, math.tau)
+        rr = spread * math.sqrt(rng.random())
+        sub = bmesh.new()
+        if rng.random() < 0.5:
+            bmesh.ops.create_cube(sub, size=1.0)
+            sx, sy, sz = rng.uniform(0.06, 0.25), rng.uniform(0.05, 0.18), rng.uniform(0.02, 0.05)
+            for v in sub.verts:
+                v.co = Vector((v.co.x * sx, v.co.y * sy, v.co.z * sz + sz * 0.3))
+        else:
+            sub = _plate(rng.uniform(0.09, 0.14))
+        me = bpy.data.meshes.new("s")
+        bmesh.ops.rotate(sub, verts=sub.verts, cent=(0, 0, 0), matrix=__import__("mathutils").Matrix.Rotation(rng.uniform(0, 6.3), 3, "Z"))
+        bmesh.ops.translate(sub, verts=sub.verts, vec=(math.cos(a) * rr, math.sin(a) * rr, 0))
+        sub.to_mesh(me)
+        sub.free()
+        bm.from_mesh(me)
+    return bm, ["M_Foam"]
+
+
+def floating_trash(seed, n, spread):
+    """Mixed floating packets / cups / polythene for the river (bobbing material slots)."""
+    rng = __import__("random").Random(seed)
+    bm = bmesh.new()
+    slots = ["M_Plastic", "M_PlasticBlue", "M_Marigold", "M_Foam", "M_Leaf"]
+    for i in range(n):
+        a = rng.uniform(0, math.tau)
+        rr = spread * math.sqrt(rng.random())
+        pos = Vector((math.cos(a) * rr, math.sin(a) * rr, 0.0))
+        k = _pick(rng, [("poly", 4), ("wrapper", 3), ("cup", 2), ("plate", 2), ("flower", 2)])
+        if k == "poly":
+            _merge(bm, _crumple(rng.uniform(0.2, 0.45), seed + i, 0.2), rng.choice([0, 0, 1]), pos, a)
+        elif k == "wrapper":
+            _merge(bm, _crumple(rng.uniform(0.1, 0.18), i, 0.3), rng.choice([0, 1, 2]), pos, a)
+        elif k == "cup":
+            _merge(bm, _cup(i), 3, pos + Vector((0, 0, 0.02)), a, math.radians(90))
+        elif k == "plate":
+            _merge(bm, _plate(rng.uniform(0.1, 0.15)), rng.choice([3, 4]), pos, a)
+        else:
+            _merge(bm, _ball(0.03, i), 2, pos, a)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return bm, slots
+
+
 def build():
     info = {}
     jobs = []
@@ -200,6 +390,16 @@ def build():
     jobs.append(("Debris_LeafBowl", leaf_bowl))
     for i in range(2):
         jobs.append((f"Debris_Foam_{i}", lambda i=i: foam_patch(R.uniform(0.6, 1.4), i * 7)))
+    for i in range(4):
+        jobs.append((f"Litter_Patch_{i}", lambda i=i: litter_patch(100 + i, R.uniform(0.9, 1.6), R.randint(22, 40))))
+    jobs.append(("Litter_Strip", lambda: litter_patch(200, 3.0, 90)))
+    jobs.append(("Litter_Flowers", lambda: litter_patch(210, 1.0, 45, [("flower", 6), ("plate", 2), ("leaf", 3), ("poly", 1)])))
+    for i in range(3):
+        jobs.append((f"Garbage_Heap_{i}", lambda i=i: garbage_heap(300 + i, R.uniform(1.0, 1.8), R.uniform(0.45, 0.8))))
+    for i in range(2):
+        jobs.append((f"Debris_Styro_{i}", lambda i=i: styro_bits(400 + i, 14, 0.9)))
+    for i in range(3):
+        jobs.append((f"Debris_Trash_{i}", lambda i=i: floating_trash(500 + i, 26, 1.2)))
     jobs.append(("Wires_Span_35m", catenary_wires))
     jobs.append(("Wires_Tangle", tangled_wires))
     for name, fn in jobs:

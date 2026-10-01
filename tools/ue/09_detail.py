@@ -57,6 +57,28 @@ def build_floating():
     return mat
 
 
+def build_litter():
+    """Static (non-bobbing) colour material for litter lying on the ground."""
+    mat = new_material("M_LitterStatic")
+    mat.set_editor_property("two_sided", True)
+    mat.set_editor_property("used_with_instanced_static_meshes", True)
+    mat.set_editor_property("used_with_nanite", True)
+    color = expr(mat, unreal.MaterialExpressionVectorParameter, -500, -100, parameter_name="Color", default_value=unreal.LinearColor(0.8, 0.8, 0.8, 1))
+    mel.connect_material_property(color, "RGB", unreal.MaterialProperty.MP_BASE_COLOR)
+    rough = expr(mat, unreal.MaterialExpressionScalarParameter, -500, 100, parameter_name="Roughness", default_value=0.6)
+    mel.connect_material_property(rough, "", unreal.MaterialProperty.MP_ROUGHNESS)
+    mel.recompile_material(mat)
+    return mat
+
+
+# Sun-bleached, dirty street litter (the clip's garbage is mostly grimy white / grey / brown, few bright packets).
+LITTER_COLORS = {"M_LitterPaper": ((0.5, 0.47, 0.41), 0.9), "M_LitterPlastic": ((0.56, 0.55, 0.52), 0.55),
+                 "M_LitterRed": ((0.3, 0.09, 0.07), 0.5), "M_LitterBlue": ((0.11, 0.16, 0.27), 0.5),
+                 "M_LitterYellow": ((0.42, 0.34, 0.12), 0.55), "M_LitterSilver": ((0.4, 0.4, 0.39), 0.35),
+                 "M_LitterGreen": ((0.14, 0.2, 0.11), 0.6), "M_LitterLeaf": ((0.22, 0.18, 0.09), 0.85),
+                 "M_LitterMarigold": ((0.7, 0.32, 0.04), 0.75), "M_LitterBrown": ((0.27, 0.19, 0.12), 0.9)}
+
+
 def import_fbx_static(path, dest, name, import_materials):
     o = unreal.FbxImportUI()
     o.set_editor_property("import_mesh", True)
@@ -103,6 +125,10 @@ def main():
         mis[slot] = make_instance("MI_" + slot[2:], floating, {"Color": c, "Roughness": 0.5 if slot != "M_Foam" else 0.9})
     mis["M_Cloth"] = make_instance("MI_DebrisRag", floating, {"Color": (0.35, 0.12, 0.08), "Roughness": 0.8})
     mis["M_WindowDark"] = load(f"{MAT_DIR}/Instances/MI_WindowDark")
+    litter = build_litter()
+    for slot, (c, r) in LITTER_COLORS.items():
+        mis[slot] = make_instance("MI_" + slot[2:], litter, {"Color": c, "Roughness": r})
+    mis["M_LitterHeap"] = load(f"{MAT_DIR}/Instances/MI_GroundLitter") or load(f"{MAT_DIR}/Instances/MI_Dirt")
 
     manifest = read_json(f"{DETAIL_SRC}/detail_manifest.json", {})
     for name, info in manifest.items():
@@ -145,6 +171,16 @@ def main():
                 mesh.set_editor_property("nanite_settings", ns)
                 log("foliage prop", name)
     make_foliage_masked(PROP_DIR)
+    # Million-triangle Poly Haven scans (trees, trunk, rat, bags) are placed by the dozen: Nanite only.
+    for name in ("PH_island_tree_02", "PH_tree_small_02", "PH_dead_tree_trunk", "PH_street_rat", "PH_compost_bags",
+                 "PH_island_tree_01", "PH_jacaranda_tree", "PH_rusted_wheel_rim_01", "PH_can_rusted", "PH_plastic_bottle_gallon"):
+        mesh = load(f"{PROP_DIR}/{name}/SM_{name}")
+        if mesh:
+            ns = mesh.get_editor_property("nanite_settings")
+            ns.set_editor_property("enabled", True)
+            mesh.set_editor_property("nanite_settings", ns)
+            eal.save_loaded_asset(mesh, False)
+            log("nanite", name)
     save_dir(ROOT)
     log("detail done")
 
