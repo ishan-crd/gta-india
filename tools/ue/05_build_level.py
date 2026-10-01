@@ -45,7 +45,7 @@ FAR_ROW_Y = FAR_TOP_Y - 500           # riverfront facades, facing the river (+Y
 NAMED_GHATS = {0: "DASHASHWAMEDH GHAT", -14000: "MANIKARNIKA GHAT", 16000: "DARBHANGA GHAT", -28000: "SCINDIA GHAT", 30000: "ASSI GHAT"}
 PICKUP = unreal.Vector(-12000, 8150, TOP_Z)
 PLAYER_START = unreal.Vector(-13600, 7650, TOP_Z + 110)
-BIKE_POS = unreal.Vector(-13000, 7300, TOP_Z + 70)
+BIKE_POS = unreal.Vector(-13050, 7745, TOP_Z + 70)    # parked at the shop-side kerb, clear of the traffic lanes
 GHAT_ENTRY = unreal.Vector(-2000, 600, 0)        # where the mission points you into the water
 DROP = unreal.Vector(0, FAR_TOP_Y - 250, TOP_Z)  # top of the far ghat
 # Gaps in the far riverfront row so the drop point and the named ghats stay reachable.
@@ -457,19 +457,21 @@ def build_debris(sc):
         z = 1.0 if "Foam" in name else 2.0
         s = R.uniform(0.45, 0.8) if ("Bag" in name or "Rag" in name) else R.uniform(0.8, 1.3)
         sc.add(name, xf(x, y, z, R.uniform(0, 360), s), collision=False, cull=9000.0, shadow=False)
-    for i in range(9000):                          # near waterline
+    for i in range(int(9000 * DEBRIS_K)):                          # near waterline
         x = R.gauss(-3000, 15000) if R.random() < 0.7 else R.uniform(GHAT_X0, GHAT_X1)
         if GHAT_X0 < x < GHAT_X1:
             drop(x, -abs(R.gauss(0, 500)) - 40.0)
-    for i in range(8000):                          # across the river (denser where you swim)
+    for i in range(int(8000 * DEBRIS_K)):                          # across the river (denser where you swim)
         x = R.gauss(-1000, 9000) if R.random() < 0.6 else R.uniform(-40000, 40000)
         drop(x, R.uniform(FAR_EDGE_Y + 300, -400))
-    for i in range(7000):                          # far waterline
+    for i in range(int(7000 * DEBRIS_K)):                          # far waterline
         x = R.gauss(0, 12000) if R.random() < 0.7 else R.uniform(FAR_X0, FAR_X1)
         if FAR_X0 < x < FAR_X1:
             drop(x, FAR_EDGE_Y + abs(R.gauss(0, 500)) + 40.0)
 
 
+LITTER_K = 0.3     # share of the original litter / junk counts (the full amount read as noise, not a street)
+DEBRIS_K = 0.22    # share of the original floating debris
 LITTER = ["Litter_Patch_0", "Litter_Patch_1", "Litter_Patch_2", "Litter_Patch_3"]
 
 
@@ -480,28 +482,28 @@ def build_litter(sc):
         sc.add(name or R.choice(LITTER), xf(x, y, TOP_Z + 1, R.uniform(0, 360), s or R.uniform(0.8, 1.4)),
                collision=False, cull=7000.0, shadow=False)
     X0, X1 = GHAT_X0 - 6000, GHAT_X1 + 6000
-    for i in range(2600):                         # both sides of the ballast
+    for i in range(int(2600 * LITTER_K)):                         # both sides of the ballast
         patch(R.uniform(X0, X1), RAIL_Y + R.choice([-1, 1]) * R.uniform(260, 700))
-    for i in range(700):
+    for i in range(int(700 * LITTER_K)):
         sc.add("Litter_Strip", xf(R.uniform(X0, X1), RAIL_Y + R.choice([-1, 1]) * R.uniform(300, 450), TOP_Z + 1, R.choice([0, 180])),
                collision=False, cull=8000.0, shadow=False)
-    for i in range(1500):                         # road shoulders (the wheel tracks stay clearer)
+    for i in range(int(1500 * LITTER_K)):                         # road shoulders (the wheel tracks stay clearer)
         patch(R.uniform(X0, X1), R.choice([R.uniform(6700, 7080), R.uniform(7720, 8200), R.uniform(6700, 7080), R.uniform(7100, 7700)]),
               s=R.uniform(0.6, 1.0))
-    for i in range(1100):                         # ghat-top strip (flowers + litter)
+    for i in range(int(1100 * LITTER_K)):                         # ghat-top strip (flowers + litter)
         x = R.uniform(GHAT_X0, GHAT_X1)
         patch(x, R.uniform(4300, 5500), R.choice(LITTER + ["Litter_Flowers", "Litter_Flowers"]))
     for fy, _ in VILLAGE_ROWS:                    # in front of the houses
-        for i in range(550):
+        for i in range(int(550 * LITTER_K)):
             patch(R.uniform(X0, X1), fy - R.uniform(80, 500))
     for gy in GALI_Y:
-        for i in range(700):
+        for i in range(int(700 * LITTER_K)):
             patch(R.uniform(X0, X1), gy + R.uniform(-350, 350))
-    for i in range(260):                          # dumped heaps by the track and road
+    for i in range(int(260 * LITTER_K)):                          # dumped heaps by the track and road
         y = R.choice([RAIL_Y + R.uniform(600, 950), RAIL_Y - R.uniform(450, 700), R.uniform(8200, 8500)])
         sc.add(R.choice(["Garbage_Heap_0", "Garbage_Heap_1", "Garbage_Heap_2"]),
                xf(R.uniform(X0, X1), y, TOP_Z, R.uniform(0, 360), R.uniform(0.8, 1.3)), collision=False, cull=15000.0)
-    for i in range(1500):                         # far promenade
+    for i in range(int(1500 * LITTER_K)):                         # far promenade
         sc.add(R.choice(LITTER + ["Litter_Flowers"]), xf(R.uniform(FAR_X0, FAR_X1), FAR_TOP_Y - R.uniform(50, 450), TOP_Z + 1,
                                                         R.uniform(0, 360), R.uniform(0.8, 1.3)), collision=False, cull=7000.0, shadow=False)
 
@@ -510,10 +512,10 @@ def build_junk_props(props):
     """Bigger junk the litter patches don't cover: bottles, cans, tyres, crates, bags - and a few rats."""
     junk = ["PH_can_rusted", "PH_plastic_bottle_gallon", "PH_bleach_bottle", "PH_compost_bags", "PH_cement_bag", "PH_trashbag",
             "PH_cardboard_box_01", "PH_old_tyre", "PH_plastic_crate_02", "PH_plastic_container", "PH_plastic_jerrycan"]
-    for i in range(900):
+    for i in range(int(900 * LITTER_K)):
         y = R.choice([RAIL_Y + R.choice([-1, 1]) * R.uniform(280, 800), R.uniform(6700, 8300), R.uniform(4300, 5500)])
         props.append((R.choice(junk), R.uniform(GHAT_X0, GHAT_X1), y, TOP_Z, R.uniform(0, 360), R.uniform(0.9, 1.1)))
-    for i in range(60):
+    for i in range(int(60 * LITTER_K)):
         props.append(("PH_street_rat", R.uniform(GHAT_X0, GHAT_X1), R.choice([RAIL_Y + R.uniform(400, 800), R.uniform(8200, 8500)]),
                       TOP_Z, R.uniform(0, 360), 1.0))
 
@@ -644,6 +646,33 @@ def build_lighting():
     ppv.set_editor_property("settings", s)
 
 
+def build_profile_and_grade():
+    """Same look and player as the Trial lane: the dhoti player on a low, close chase cam, a higher clearer
+    sun and a lighter haze so the far bank still reads but the scene stops looking washed out."""
+    prof = spawn(unreal.GILevelProfile, unreal.Vector(0, 0, 0), label="LevelProfile")
+    pm = load("/Game/Characters/SK_PlayerDhoti/SK_PlayerDhoti")
+    if pm:
+        prof.set_editor_property("player_mesh", pm)
+    prof.set_editor_property("arm_length", 290.0)
+    prof.set_editor_property("socket_offset", unreal.Vector(0, 8, 30))
+    prof.set_editor_property("field_of_view", 75.0)
+    prof.set_editor_property("start_pitch", -6.0)
+    prof.set_editor_property("hide_bag", True)
+    for a in eas.get_all_level_actors():
+        if isinstance(a, unreal.DirectionalLight):
+            a.set_actor_rotation(unreal.Rotator(roll=0, pitch=-34, yaw=120), False)
+            lc = a.get_component_by_class(unreal.DirectionalLightComponent)
+            lc.set_editor_property("intensity", 10.5)
+            lc.set_editor_property("temperature", 5400.0)
+        elif isinstance(a, unreal.ExponentialHeightFog):
+            fc = a.get_component_by_class(unreal.ExponentialHeightFogComponent)
+            fc.set_editor_property("fog_density", 0.014)
+            fc.set_editor_property("fog_inscattering_luminance", unreal.LinearColor(0.5, 0.52, 0.56, 1))
+            fc.set_editor_property("directional_inscattering_luminance", unreal.LinearColor(0.8, 0.6, 0.4, 1))
+            fc.set_editor_property("start_distance", 3000.0)
+            fc.set_editor_property("volumetric_fog_extinction_scale", 0.6)
+
+
 def build_gameplay(lanes, spots):
     river = spawn(unreal.GIRiver, unreal.Vector(0, -7500, 0), label="Ganga")
     river.set_editor_property("half_extent", unreal.Vector2D(95000, 11000))
@@ -656,8 +685,8 @@ def build_gameplay(lanes, spots):
         smc.set_material(0, mi)
 
     spawn(unreal.PlayerStart, PLAYER_START, unreal.Rotator(roll=0.0, pitch=0.0, yaw=0.0), label="PlayerStart")
-    spawn(unreal.GIBike, BIKE_POS, unreal.Rotator(roll=0, pitch=0, yaw=0), label="Bike_Pulsar")
-    spawn(unreal.GIBike, unreal.Vector(-11500, 7600, TOP_Z + 70), unreal.Rotator(roll=0.0, pitch=0.0, yaw=180.0), label="Bike_Pulsar2")
+    spawn(unreal.GIBike, BIKE_POS, unreal.Rotator(roll=0, pitch=0, yaw=180), label="Bike_Pulsar")
+    spawn(unreal.GIBike, unreal.Vector(-11500, 7750, TOP_Z + 70), unreal.Rotator(roll=0.0, pitch=0.0, yaw=180.0), label="Bike_Pulsar2")
 
     train = spawn(unreal.GITrain, unreal.Vector(-30000, RAIL_Y, TOP_Z + 15), label="Train")
     train.set_editor_property("speed", 850.0)
@@ -666,8 +695,8 @@ def build_gameplay(lanes, spots):
 
     traffic = spawn(unreal.GITraffic, unreal.Vector(0, 0, 0), label="Traffic")
     lanes_t = []
-    # India keeps left: heading +X the left-hand side is +Y.
-    for y, d, n in ((ROAD_Y + 230, 1.0, 11), (ROAD_Y - 230, -1.0, 11)):
+    # India keeps left. UE is left-handed: heading +X the right-hand side is +Y, so +X traffic uses the -Y lane.
+    for y, d, n in ((ROAD_Y - 190, 1.0, 11), (ROAD_Y + 190, -1.0, 11)):
         tl = unreal.GITrafficLane()
         tl.set_editor_property("y", float(y))
         tl.set_editor_property("z", float(TOP_Z + 4))
@@ -685,7 +714,8 @@ def build_gameplay(lanes, spots):
     traffic.set_editor_property("vehicle_meshes", [m for m, _ in fleet])
     traffic.set_editor_property("vehicle_mesh_yaws", [float(y) for _, y in fleet])
     # Parked vehicles you can drive (F): an auto by the dhaba and a WagonR down the road.
-    for n, yaw, loc in (("AutoRickshaw", 180.0, unreal.Vector(-11200, 7650, TOP_Z + 90)), ("CarWagonR", 180.0, unreal.Vector(-9500, 7700, TOP_Z + 90))):
+    # Parked on the rail-side dirt shoulder (off the carriageway), noses along the +X traffic.
+    for n, yaw, loc in (("AutoRickshaw", 180.0, unreal.Vector(-11200, 6860, TOP_Z + 90)), ("CarWagonR", 180.0, unreal.Vector(-9500, 6850, TOP_Z + 90))):
         m = mesh(n)
         if m:
             v = spawn(unreal.GIBike, loc, unreal.Rotator(roll=0, pitch=0, yaw=0), label="Drivable_" + n)
@@ -783,6 +813,7 @@ def main():
 
     build_lighting()
     build_gameplay(lanes, spots)
+    build_profile_and_grade()
 
     les.save_current_level()
     log("level saved", MAP)

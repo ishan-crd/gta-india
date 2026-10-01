@@ -252,10 +252,10 @@ def build_gameplay(lanes, spots, props):
         v.set_editor_property("mesh_yaw_override", 0.0)
         v.set_editor_property("four_wheeler", True)
 
-    # traffic on the main road (Mumbai keeps left: heading +X the left side is +Y)
+    # traffic on the main road (Mumbai keeps left; UE is left-handed, so heading +X the left side is -Y)
     traffic = spawn(unreal.GITraffic, unreal.Vector(0, 0, 0), label="Traffic")
     lanes_t = []
-    for y, d, n in ((330, 1.0, 12), (-330, -1.0, 12)):
+    for y, d, n in ((-330, 1.0, 12), (330, -1.0, 12)):
         tl = unreal.GITrafficLane()
         tl.set_editor_property("y", float(y))
         tl.set_editor_property("z", 4.0)

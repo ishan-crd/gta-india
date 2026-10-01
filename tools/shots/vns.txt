@@ -1,0 +1,8 @@
+v1_player_road player -13600 7650 1310 0 -4
+v2_road_traffic cam -16000 7300 1500 -8 10
+v3_road_traffic2 cam -11000 7900 1500 -8 190
+v4_village_lane player -9000 10700 1310 0 -4
+v5_ghat_top player -2500 4700 1300 -90 -8
+v6_ghats cam -1500 -2600 500 -4 80
+v7_train train
+v8_road_close cam -13000 7200 1380 -6 100

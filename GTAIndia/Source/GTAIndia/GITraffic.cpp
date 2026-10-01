@@ -275,7 +275,13 @@ void AGITraffic::Tick(float DeltaSeconds)
 		}
 		const float Want = Gap < 450.f ? 0.f : (Gap < 1500.f ? V.MaxSpeed * (Gap - 450.f) / 1050.f : V.MaxSpeed);
 		V.Speed = FMath::FInterpTo(V.Speed, Want, DeltaSeconds, Want < V.Speed ? 4.f : 1.2f);
-		V.X += Dir * V.Speed * DeltaSeconds;
+		// Never close in past a minimum bumper gap, whatever the braking curve did this frame.
+		const float Step = FMath::Min(V.Speed * DeltaSeconds, FMath::Max(0.f, Gap - 380.f));
+		if (Step < V.Speed * DeltaSeconds)
+		{
+			V.Speed = Step / FMath::Max(DeltaSeconds, 1e-3f);
+		}
+		V.X += Dir * Step;
 		if (V.X > MaxX)
 		{
 			V.X = MinX;
@@ -284,7 +290,7 @@ void AGITraffic::Tick(float DeltaSeconds)
 		{
 			V.X = MaxX;
 		}
-		const float Sway = 18.f * FMath::Sin(Now * 0.7f + V.Wobble);
+		const float Sway = 10.f * FMath::Sin(Now * 0.7f + V.Wobble);
 		const float TravelYaw = Dir > 0.f ? 0.f : 180.f;
 		const FVector VLoc(V.X, L.Y + Sway, L.Z);
 		V.Comp->SetWorldLocationAndRotation(VLoc, FRotator(0.f, TravelYaw + V.MeshYaw, 0.f));
