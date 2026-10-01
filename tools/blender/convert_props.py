@@ -44,6 +44,20 @@ PROPS = {
     "Buffalo": ("sketchfab/buffalo/scene.gltf", 2.5, "long", True, 0),
     "CarWagonR": ("sketchfab/car_wagonr/scene.gltf", 3.6, "long", True, 0),
     "CarNano": ("sketchfab/car_nano/scene.gltf", 3.1, "long", True, 0),
+    # --- Dharavi (Mumbai) ---
+    "AutoMumbai": ("sketchfab/auto_mumbai/scene.gltf", 2.65, "long", True, 0),
+    "ScooterActiva": ("sketchfab/scooter_activa/scene.gltf", 1.8, "long", True, 0),
+    "BicycleIndian": ("sketchfab/bicycle_indian/scene.gltf", 1.75, "long", True, 0),
+    "DogLying": ("sketchfab/dog_lying/scene.gltf", 0.95, "long", True, 0),
+    "DogStanding": ("sketchfab/dog_standing/scene.gltf", 0.85, "long", True, 0),
+    "DogStanding2": ("sketchfab/dog_lab/scene.gltf", 0.9, "long", True, 0),
+    "VegCartModel": ("sketchfab/veg_cart/scene.gltf", 1.8, "long", True, 0),
+    "CricketSetModel": ("sketchfab/cricket_set/scene.gltf", 0.72, "height", False, 0),
+    "StallModel": ("sketchfab/stall_thela/scene.gltf", 2.4, "height", False, 0),
+    "MatkaModel": ("sketchfab/matka/scene.gltf", 0.45, "height", False, 0),
+    "ACOutdoorUnit": ("sketchfab/ac_unit/scene.gltf", 0.6, "height", False, 0),
+    "ElecMeter": ("sketchfab/elec_meter/scene.gltf", 0.3, "height", False, 0),
+    "ElecMeterBank": ("sketchfab/meter_bank/scene.gltf", 1.6, "long", True, 0),
 }
 
 # Poly Haven models are already real-world scale (metres) and Z-up after glTF import.
@@ -85,9 +99,29 @@ def world_bounds(objs):
     return lo, hi
 
 
+def fix_unlit_materials():
+    """KHR_materials_unlit imports as an emission/lightpath mix the FBX exporter can't read, so the
+    texture is lost. Rebuild such materials as a plain Principled BSDF fed by the base-colour image."""
+    for mat in bpy.data.materials:
+        if not mat.use_nodes:
+            continue
+        nt = mat.node_tree
+        if any(n.type == "BSDF_PRINCIPLED" for n in nt.nodes):
+            continue
+        imgs = [n for n in nt.nodes if n.type == "TEX_IMAGE" and n.image]
+        out = next((n for n in nt.nodes if n.type == "OUTPUT_MATERIAL"), None)
+        if not imgs or out is None:
+            continue
+        bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
+        nt.links.new(imgs[0].outputs["Color"], bsdf.inputs["Base Color"])
+        bsdf.inputs["Roughness"].default_value = 0.9
+        nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+
+
 def convert(name, src, size_m, axis, align, yaw, out_dir):
     reset()
     bpy.ops.import_scene.gltf(filepath=src)
+    fix_unlit_materials()
     # Keep only meshes; strip armatures (we export static meshes) while keeping the posed shape.
     for o in list(bpy.data.objects):
         if o.type == "MESH":

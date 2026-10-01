@@ -377,6 +377,93 @@ def floating_trash(seed, n, spread):
     return bm, slots
 
 
+def umbrella(slot):
+    """Open umbrella: handle at the origin (held in the hand), 8-panel canopy ~1 m across above."""
+    bm = bmesh.new()
+    # shaft + curved handle
+    sub = bmesh.new()
+    bmesh.ops.create_cone(sub, cap_ends=True, segments=6, radius1=0.009, radius2=0.009, depth=1.0)
+    bmesh.ops.translate(sub, verts=sub.verts, vec=(0, 0, 0.5))
+    me = bpy.data.meshes.new("u")
+    sub.to_mesh(me)
+    sub.free()
+    bm.from_mesh(me)
+    n_shaft = len(bm.faces)
+    # canopy: rim at z 0.93, apex 1.13, panels slightly scalloped between ribs
+    segs, rings = 8, 4
+    apex = bm.verts.new((0, 0, 1.13))
+    rim_r, rim_z = 0.52, 0.93
+    grid = []
+    for k in range(1, rings + 1):
+        ring = []
+        f = k / rings
+        for i in range(segs * 2):
+            a = i / (segs * 2) * math.tau
+            scallop = 0.0 if i % 2 == 0 else -0.035 * f
+            r = rim_r * f
+            z = 1.13 - (1.13 - rim_z) * (f ** 1.4) + scallop
+            ring.append(bm.verts.new((math.cos(a) * r, math.sin(a) * r, z)))
+        grid.append(ring)
+    n = segs * 2
+    for i in range(n):
+        bm.faces.new((apex, grid[0][i], grid[0][(i + 1) % n]))
+    for k in range(rings - 1):
+        for i in range(n):
+            bm.faces.new((grid[k][i], grid[k + 1][i], grid[k + 1][(i + 1) % n], grid[k][(i + 1) % n]))
+    bm.faces.ensure_lookup_table()
+    for j, f in enumerate(bm.faces):
+        f.material_index = 1 if j < n_shaft else 0
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return bm, [slot, "M_WindowDark"]
+
+
+def chai_glass():
+    """Cutting-chai glass (6 cm, ribbed, half full of milky tea). Origin = glass centre (held in the hand)."""
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=10, radius1=0.026, radius2=0.032, depth=0.085)
+    for f in bm.faces:
+        f.material_index = 0
+    tea = bmesh.new()
+    bmesh.ops.create_cone(tea, cap_ends=True, segments=10, radius1=0.024, radius2=0.029, depth=0.055)
+    bmesh.ops.translate(tea, verts=tea.verts, vec=(0, 0, -0.012))
+    me = bpy.data.meshes.new("t")
+    tea.to_mesh(me)
+    tea.free()
+    n0 = len(bm.faces)
+    bm.from_mesh(me)
+    bm.faces.ensure_lookup_table()
+    for f in bm.faces[n0:]:
+        f.material_index = 1
+    return bm, ["M_ChaiGlass", "M_ChaiTea"]
+
+
+def kettle():
+    """Brass chai kettle held up by the chai-wallah: pot, lid knob, spout, handle. Origin = handle grip."""
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=14, v_segments=8, radius=0.09)
+    for v in bm.verts:
+        v.co.z *= 0.85
+        v.co += Vector((0.0, 0.0, -0.13))
+    sp = bmesh.new()
+    bmesh.ops.create_cone(sp, cap_ends=False, segments=6, radius1=0.016, radius2=0.008, depth=0.13)
+    from mathutils import Matrix
+    bmesh.ops.rotate(sp, verts=sp.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(math.radians(55), 3, "Y"))
+    bmesh.ops.translate(sp, verts=sp.verts, vec=(0.12, 0, -0.1))
+    me = bpy.data.meshes.new("s")
+    sp.to_mesh(me)
+    sp.free()
+    bm.from_mesh(me)
+    hd = bmesh.new()
+    bmesh.ops.create_cone(hd, cap_ends=True, segments=6, radius1=0.008, radius2=0.008, depth=0.14)
+    bmesh.ops.rotate(hd, verts=hd.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(math.radians(90), 3, "Y"))
+    bmesh.ops.translate(hd, verts=hd.verts, vec=(-0.02, 0, 0))
+    me2 = bpy.data.meshes.new("h")
+    hd.to_mesh(me2)
+    hd.free()
+    bm.from_mesh(me2)
+    return bm, ["M_BrassKettle"]
+
+
 def build():
     info = {}
     jobs = []
@@ -400,6 +487,10 @@ def build():
         jobs.append((f"Debris_Styro_{i}", lambda i=i: styro_bits(400 + i, 14, 0.9)))
     for i in range(3):
         jobs.append((f"Debris_Trash_{i}", lambda i=i: floating_trash(500 + i, 26, 1.2)))
+    for col in ("Red", "Yellow", "Blue", "Green", "Black", "Pink"):
+        jobs.append((f"Umbrella_{col}", lambda col=col: umbrella(f"M_Umbrella{col}")))
+    jobs.append(("Prop_ChaiGlass", chai_glass))
+    jobs.append(("Prop_Kettle", kettle))
     jobs.append(("Wires_Span_35m", catenary_wires))
     jobs.append(("Wires_Tangle", tangled_wires))
     for name, fn in jobs:

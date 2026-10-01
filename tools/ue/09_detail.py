@@ -76,7 +76,14 @@ LITTER_COLORS = {"M_LitterPaper": ((0.5, 0.47, 0.41), 0.9), "M_LitterPlastic": (
                  "M_LitterRed": ((0.3, 0.09, 0.07), 0.5), "M_LitterBlue": ((0.11, 0.16, 0.27), 0.5),
                  "M_LitterYellow": ((0.42, 0.34, 0.12), 0.55), "M_LitterSilver": ((0.4, 0.4, 0.39), 0.35),
                  "M_LitterGreen": ((0.14, 0.2, 0.11), 0.6), "M_LitterLeaf": ((0.22, 0.18, 0.09), 0.85),
-                 "M_LitterMarigold": ((0.7, 0.32, 0.04), 0.75), "M_LitterBrown": ((0.27, 0.19, 0.12), 0.9)}
+                 "M_LitterMarigold": ((0.7, 0.32, 0.04), 0.75), "M_LitterBrown": ((0.27, 0.19, 0.12), 0.9),
+                 # monsoon umbrellas (Mumbai)
+                 "M_UmbrellaRed": ((0.7, 0.03, 0.03), 0.45), "M_UmbrellaYellow": ((0.9, 0.62, 0.02), 0.45),
+                 "M_UmbrellaBlue": ((0.03, 0.12, 0.6), 0.45), "M_UmbrellaGreen": ((0.04, 0.4, 0.08), 0.45),
+                 "M_UmbrellaBlack": ((0.015, 0.015, 0.02), 0.35), "M_UmbrellaPink": ((0.8, 0.12, 0.35), 0.45),
+                 # chai props
+                 "M_ChaiGlass": ((0.62, 0.62, 0.6), 0.1), "M_ChaiTea": ((0.42, 0.24, 0.1), 0.25),
+                 "M_BrassKettle": ((0.72, 0.48, 0.14), 0.3)}
 
 
 def import_fbx_static(path, dest, name, import_materials):
