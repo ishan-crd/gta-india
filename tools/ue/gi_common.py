@@ -61,6 +61,22 @@ SLOT_TEXTURES = {
     "M_VillageGround": "dry_mud_field_001",
     "M_FlowerDirt": "flower_scattered_dirt",
     "M_MuddyTracks": "muddy_tracks",
+    # --- Dharavi kit (kit_dharavi.py)
+    "M_PlasterTeal": "painted_concrete",            # green-teal peeling paint
+    "M_PlasterTurquoise": "blue_plaster_weathered",  # tinted turquoise (SLOT_TWEAKS)
+    "M_PlasterCream": "white_plaster_rough_01",      # tinted cream
+    "M_BrickExposed": "rough_plaster_brick",         # exposed brick with plaster remains
+    "M_AsbestosRoof": "asbestos_sheet_02",           # grey cement/asbestos corrugated sheets
+    "M_CorrugatedGalv": "worn_corrugated_iron",      # worn galvanised sheet
+    "M_CorrugatedPainted": "rusty_painted_metal",    # red-oxide painted rusty sheet
+    "M_TinGreen": "green_metal_rust",                # painted green tin doors
+    "M_TinBlue": "blue_metal_plate",                 # painted blue tin doors / panels
+    "M_ConcreteDirty": "dirty_concrete",             # stained concrete (gateway, skirting)
+    "M_LaundryRed": "cotton_jersey", "M_LaundryYellow": "cotton_jersey", "M_LaundryPink": "cotton_jersey",
+    "M_LaundryGreen": "cotton_jersey", "M_LaundryBlueL": "cotton_jersey", "M_LaundryWhite": "cotton_jersey",
+    "M_LaundryPurple": "cotton_jersey", "M_LaundryOrange": "cotton_jersey",
+    "M_SackWhite": "cotton_jersey", "M_SackGreen": "cotton_jersey", "M_SackBlue": "cotton_jersey",
+    "M_SackBeige": "cotton_jersey",
 }
 
 # Extra per-slot tweaks: tint (linear RGB), uv scale, roughness scale, two-sided
@@ -75,6 +91,23 @@ SLOT_TWEAKS = {
     "M_TrainPurple": {"tint": (0.42, 0.2, 0.75), "uv": 0.5},
     "M_TrainRoof": {"tint": (0.42, 0.41, 0.4), "uv": 0.5, "rough": 0.7},
     "M_GroundLitter": {"tint": (0.95, 0.85, 0.7)},
+    # --- Dharavi kit
+    "M_PlasterTeal": {"tint": (0.75, 1.05, 1.1)},
+    "M_PlasterTurquoise": {"tint": (0.55, 1.2, 1.25)},
+    "M_PlasterCream": {"tint": (1.6, 1.5, 1.25)},
+    "M_AsbestosRoof": {"tint": (1.05, 1.05, 1.05), "uv": 1.0},
+    "M_LaundryRed": {"tint": (0.95, 0.08, 0.06), "two_sided": True},
+    "M_LaundryYellow": {"tint": (1.3, 0.95, 0.08), "two_sided": True},
+    "M_LaundryPink": {"tint": (1.3, 0.3, 0.6), "two_sided": True},
+    "M_LaundryGreen": {"tint": (0.12, 0.65, 0.18), "two_sided": True},
+    "M_LaundryBlueL": {"tint": (0.35, 0.65, 1.3), "two_sided": True},
+    "M_LaundryWhite": {"tint": (1.3, 1.3, 1.3), "two_sided": True},
+    "M_LaundryPurple": {"tint": (0.45, 0.12, 0.8), "two_sided": True},
+    "M_LaundryOrange": {"tint": (1.3, 0.45, 0.05), "two_sided": True},
+    "M_SackWhite": {"tint": (1.25, 1.25, 1.2), "uv": 3.0},
+    "M_SackGreen": {"tint": (0.35, 0.75, 0.4), "uv": 3.0},
+    "M_SackBlue": {"tint": (0.3, 0.5, 1.1), "uv": 3.0},
+    "M_SackBeige": {"tint": (1.05, 0.9, 0.65), "uv": 3.0},
 }
 
 SOLID_SLOTS = {
@@ -83,6 +116,37 @@ SOLID_SLOTS = {
     "M_Gold": {"color": (0.95, 0.66, 0.2), "rough": 0.3, "metal": 1.0},
     "M_Whitewash": {"color": (0.78, 0.76, 0.7), "rough": 0.85, "metal": 0.0},
     "M_Signboard": {"color": (0.8, 0.12, 0.08), "rough": 0.6, "metal": 0.0},
+    # --- Dharavi kit (kit_dharavi.py)
+    "M_TarpBlue": {"color": (0.02, 0.12, 0.45), "rough": 0.5, "metal": 0.0},       # blue tarpaulin (geometry is double-sided)
+    "M_PlasticBlue": {"color": (0.01, 0.09, 0.4), "rough": 0.4, "metal": 0.0},     # drums, stools, buckets
+    "M_PlasticRed": {"color": (0.55, 0.02, 0.02), "rough": 0.4, "metal": 0.0},
+    "M_PlasticYellow": {"color": (0.8, 0.5, 0.02), "rough": 0.45, "metal": 0.0},
+    "M_Terracotta": {"color": (0.45, 0.15, 0.06), "rough": 0.85, "metal": 0.0},    # matka clay pots
+    "M_ClayGreen": {"color": (0.05, 0.2, 0.08), "rough": 0.6, "metal": 0.0},       # painted pot
+    "M_TeaSteel": {"color": (0.7, 0.7, 0.72), "rough": 0.3, "metal": 1.0},         # aluminium / steel pots, glasses
+    "M_Brass": {"color": (0.8, 0.55, 0.2), "rough": 0.35, "metal": 1.0},
+    "M_Glass": {"color": (0.35, 0.4, 0.38), "rough": 0.05, "metal": 0.0},          # jar glass (opaque stand-in)
+    "M_LPGRed": {"color": (0.5, 0.02, 0.015), "rough": 0.35, "metal": 0.3},
+    "M_Rubber": {"color": (0.02, 0.02, 0.02), "rough": 0.9, "metal": 0.0},         # tyres, cables, grips
+    "M_TennisYellow": {"color": (0.75, 0.8, 0.05), "rough": 0.95, "metal": 0.0},
+    "M_BatWillow": {"color": (0.62, 0.45, 0.25), "rough": 0.7, "metal": 0.0},
+    "M_VegGreen": {"color": (0.06, 0.25, 0.02), "rough": 0.55, "metal": 0.0},
+    "M_VegRed": {"color": (0.6, 0.03, 0.02), "rough": 0.35, "metal": 0.0},
+    "M_Onion": {"color": (0.4, 0.09, 0.12), "rough": 0.45, "metal": 0.0},
+    "M_VegBrown": {"color": (0.32, 0.2, 0.09), "rough": 0.8, "metal": 0.0},
+    "M_Poster": {"color": (0.7, 0.6, 0.45), "rough": 0.8, "metal": 0.0},           # 0..1 UV per poster quad (atlas-ready)
+    "M_Snack_01": {"color": (0.8, 0.15, 0.02), "rough": 0.3, "metal": 0.2},        # snack sachets
+    "M_Snack_02": {"color": (0.85, 0.6, 0.02), "rough": 0.3, "metal": 0.2},
+    "M_Snack_03": {"color": (0.04, 0.15, 0.7), "rough": 0.3, "metal": 0.2},
+    "M_Snack_04": {"color": (0.08, 0.45, 0.08), "rough": 0.3, "metal": 0.2},
+    "M_SnackFoil": {"color": (0.75, 0.75, 0.78), "rough": 0.25, "metal": 0.9},
+    # light-box sign faces (0..1 UV over each face) - meant to become emissive (see "emissive" hint)
+    "M_Neon_01": {"color": (1.0, 0.05, 0.4), "rough": 0.4, "metal": 0.0, "emissive": (8.0, 0.4, 3.0)},
+    "M_Neon_02": {"color": (0.05, 0.8, 1.0), "rough": 0.4, "metal": 0.0, "emissive": (0.4, 6.0, 8.0)},
+    "M_Neon_03": {"color": (1.0, 0.05, 0.02), "rough": 0.4, "metal": 0.0, "emissive": (8.0, 0.4, 0.2)},
+    "M_Neon_04": {"color": (0.1, 1.0, 0.2), "rough": 0.4, "metal": 0.0, "emissive": (0.8, 8.0, 1.5)},
+    "M_Neon_05": {"color": (1.0, 0.7, 0.05), "rough": 0.4, "metal": 0.0, "emissive": (8.0, 5.0, 0.4)},
+    "M_Neon_06": {"color": (1.0, 1.0, 1.0), "rough": 0.4, "metal": 0.0, "emissive": (6.0, 6.0, 6.5)},
 }
 
 

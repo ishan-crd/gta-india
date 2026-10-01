@@ -973,4 +973,6 @@ def registry():
     add('Water_Tank_Rooftop', 'props', asset_water_tank, 'origin = stand base centre', 'Black plastic (M_WindowDark) ribbed tank on a rusty stand.')
     import kit_village
     kit_village.register(add)
+    import kit_dharavi
+    kit_dharavi.register(add)
     return R
