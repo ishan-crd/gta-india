@@ -1,0 +1,5 @@
+n1_climb climb 600 -700 40 90 -12
+n2_dive dive 2000 -5000 40 90 5
+n3_ghats_crowd cam -1500 -2600 500 -4 80
+n4_train_roof train
+n5_steps_women player -3000 1800 900 -60 -12

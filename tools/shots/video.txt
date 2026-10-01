@@ -1,0 +1,7 @@
+v1_road_train cam -18000 12350 1420 -2 4
+v2_train_roof train
+v3_ghat_debris player 0 650 500 -90 -28
+v4_swim_back player 1500 -500 50 90 -6
+v5_ghats_river cam -2500 -5200 700 -2 72
+v6_steps_crowd player -1500 2400 1000 -60 -15
+v7_town_signs cam -20000 12900 1500 2 75

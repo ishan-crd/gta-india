@@ -1,0 +1,5 @@
+f1_ghats cam -1500 -2600 500 -4 80
+f2_steps player -3000 1800 900 -60 -12
+f3_train train
+f4_promenade cam 1500 3300 1450 -6 160
+f5_road player -13600 13050 1320 10 -12

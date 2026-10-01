@@ -1,0 +1,5 @@
+m1_pickup player -12000 13650 1300 90 -15
+m2_ghat player 0 900 700 -90 -10
+m3_swim player 0 -8000 50 -90 -8
+m4_farbank player 0 -16500 900 -90 -10
+m5_deliver player 0 -18700 1200 -90 -10

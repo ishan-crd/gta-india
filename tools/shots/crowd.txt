@@ -1,0 +1,2 @@
+c1_promenade seq -4000 4300 1300 0 walkrun
+c2_ghatlane seq -3000 1500 700 0 walkrun

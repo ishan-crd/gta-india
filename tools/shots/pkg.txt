@@ -1,0 +1,5 @@
+p01_title title
+p02_ghats_river cam -2500 -5200 700 -2 72
+p08_player_start player -13600 13050 1320 10 -12
+p10_player_swim player 0 -5000 50 -90 -8
+p12_train train

@@ -1,0 +1,4 @@
+a1_walkrun seq -14000 12900 1300 0 walkrun
+a2_turns seq -14000 12900 1300 0 turns
+a3_jump seq -14000 12900 1300 0 jump
+a4_steps seq 2500 3900 1350 -90 steps

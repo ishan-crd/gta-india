@@ -1,0 +1,6 @@
+q0 preset 0
+q0_view cam -2500 -5200 700 -2 72
+q0_player player 300 1600 900 -90 -10
+q1 preset 1
+q1_view cam -2500 -5200 700 -2 72
+q3 preset 3
