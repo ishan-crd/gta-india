@@ -8,6 +8,7 @@
 #include "GIPlayerCharacter.h"
 #include "GITrain.h"
 #include "GIDharavi.h"
+#include "GIStory.h"
 #include "GameFramework/GameModeBase.h"
 #include "GICharacterMovement.h"
 #include "SGIMenu.h"
@@ -149,6 +150,11 @@ void AGIPlayerController::LoadShots()
 		{
 			S.Program = T.IsValidIndex(2) ? T[2] : TEXT("Mumbai");
 		}
+		else if (S.Kind == TEXT("story"))
+		{
+			// story <beat> <line or -1> [hour]
+			S.Loc = FVector(F(2, 0), F(3, -1), F(4, -1));
+		}
 		else if (S.Kind == TEXT("player") || S.Kind == TEXT("climb") || S.Kind == TEXT("dive"))
 		{
 			S.Loc = FVector(F(2, 0), F(3, 0), F(4, 0));
@@ -187,6 +193,17 @@ void AGIPlayerController::BeginShot(const FGIShot& Shot)
 		{
 			TitleCamera->SetActorLocationAndRotation(Shot.Loc, Shot.Rot);
 			SetViewTarget(TitleCamera);
+		}
+	}
+	else if (Shot.Kind == TEXT("story"))
+	{
+		if (!bInGame)
+		{
+			StartGame();
+		}
+		if (AGIStory* Story = AGIStory::Get(this))
+		{
+			Story->DebugJump(FMath::RoundToInt(Shot.Loc.X), FMath::RoundToInt(Shot.Loc.Y), Shot.Loc.Z);
 		}
 	}
 	else if (Shot.Kind == TEXT("player"))
@@ -473,6 +490,139 @@ void AGIPlayerController::TickSequence(const FGIShot& Shot)
 			}
 		}
 	}
+	else if (Shot.Program == TEXT("story"))
+	{
+		// Story autopilot: plays the whole mission - walks to each objective (with hints through the gallis),
+		// presses E, follows / tails along the beat's path, races to the station; logs beats and failures.
+		AGIStory* St = AGIStory::Get(this);
+		const FVector P = C->GetActorLocation();
+		static int32 LastBeat = -2, LastFails = 0, PathK = 0;
+		static float SkipT = 0.f, DoneT = -1.f;
+		if (!St)
+		{
+			return;
+		}
+		if (!St->HasStarted())
+		{
+			St->DebugJump(0, -1);
+			LastBeat = -2; LastFails = 0; PathK = 0; DoneT = -1.f;
+		}
+		if (St->GetBeatIndex() != LastBeat || St->GetFailCount() != LastFails)
+		{
+			LogLine(FString::Printf(TEXT("story,beat=%d,fails=%d,t=%.1f,pos=(%.0f %.0f %.0f),hour=%.2f,objective=%s"), St->GetBeatIndex(),
+				St->GetFailCount(), T, P.X, P.Y, P.Z, St->GetHour(), *St->GetObjective().ToString()));
+			LastBeat = St->GetBeatIndex();
+			LastFails = St->GetFailCount();
+			RouteIndex = 0;
+			PathK = 0;
+		}
+		if (St->IsFreeRoam())
+		{
+			if (DoneT < 0.f)
+			{
+				DoneT = T;
+				LogLine(FString::Printf(TEXT("story,COMPLETE,t=%.1f"), T));
+			}
+		}
+		else if (St->IsCinematic())
+		{
+			SkipT += FApp::GetDeltaTime();
+			if (SkipT > 0.6f)
+			{
+				SkipT = 0.f;
+				St->SkipLine();
+			}
+		}
+		else if (St->IsPlaying() && St->Beats.IsValidIndex(St->GetBeatIndex()))
+		{
+			const FGIStoryBeat& B = St->Beats[St->GetBeatIndex()];
+			FVector Goal;
+			bool bGoal = St->GetTarget(Goal);
+			// hints so the straight-line walker doesn't run into the houses
+			TArray<FVector> Hints;
+			switch (St->GetBeatIndex())
+			{
+			case 5: Hints = { FVector(6000, 3350, 0), FVector(6000, -6600, 0) }; break;
+			case 8: Hints = { FVector(-500, 7120, 0), FVector(18500, 7120, 0), FVector(18500, 9300, 0), FVector(18500, 9850, 0),
+				FVector(17700, 10650, 0), FVector(18300, 10650, 0) }; break;
+			default: break;
+			}
+			if (RouteIndex < Hints.Num())
+			{
+				Goal = Hints[RouteIndex];
+				bGoal = true;
+				if (FVector::Dist2D(P, Goal) < 220.f)
+				{
+					++RouteIndex;
+				}
+			}
+			else if ((B.Kind == EGIBeatKind::Follow || B.Kind == EGIBeatKind::Tail) && B.Path.Num() > 0)
+			{
+				// walk the beat's own path, never past the person you're with
+				while (PathK < B.Path.Num() - 1 && FVector::Dist2D(P, B.Path[PathK]) < 200.f)
+				{
+					++PathK;
+				}
+				Goal = B.Path[PathK];
+				const float D = FVector::Dist2D(P, St->GetMoverPos());
+				const float Keep = B.Kind == EGIBeatKind::Tail ? 1100.f : 250.f;
+				bGoal = D > Keep;
+			}
+			else if (B.Kind == EGIBeatKind::ReturnBall)
+			{
+				for (TActorIterator<AGICricketGame> It(GetWorld()); It; ++It)
+				{
+					FVector Ball;
+					if (It->GetWaitingBall(Ball))
+					{
+						Goal = Ball;
+						bGoal = true;
+					}
+					if (It->WantsBallFromPlayer(C))
+					{
+						It->PlayerReturnsBall(C);
+					}
+				}
+				if (bGoal && FVector::Dist2D(P, Goal) < 120.f)
+				{
+					bGoal = false;
+				}
+			}
+			FString Who;
+			if (St->CanTalk(C, Who))
+			{
+				St->Talk(C);
+				bGoal = false;
+			}
+			for (TActorIterator<AGIChaiStall> It(GetWorld()); It; ++It)
+			{
+				if (B.Kind == EGIBeatKind::Chai && It->CanServe(C) && !C->IsInAction())
+				{
+					It->Serve(C);
+				}
+			}
+			if (bGoal && FVector::Dist2D(P, Goal) > 90.f)
+			{
+				const FVector To = Goal - FVector(P.X, P.Y, 0.f);
+				Dir = FVector(To.X, To.Y, 0.f).GetSafeNormal();
+				Input = 1.f;
+				bSprint = B.Kind == EGIBeatKind::Reach || B.Kind == EGIBeatKind::Follow;
+				RouteStuckTimer = FVector::Dist2D(P, RouteLastPos) < 10.f ? RouteStuckTimer + FApp::GetDeltaTime() : 0.f;
+				RouteLastPos = P;
+				if (RouteStuckTimer > 5.f)
+				{
+					LogLine(FString::Printf(TEXT("story,STUCK,beat=%d,t=%.1f,pos=(%.0f %.0f %.0f),goal=(%.0f %.0f)"), St->GetBeatIndex(), T,
+						P.X, P.Y, P.Z, Goal.X, Goal.Y));
+					C->Jump();
+					RouteStuckTimer = -3.f;
+				}
+			}
+		}
+		if (DoneT >= 0.f && T > DoneT + 25.f)
+		{
+			RouteIndex = 999;   // finished: the shot ends below
+		}
+	}
 	else if (Shot.Program == TEXT("steps"))
 	{
 		Input = (T > 1.f && T < 8.5f) ? 1.f : 0.f;
@@ -484,10 +634,12 @@ void AGIPlayerController::TickSequence(const FGIShot& Shot)
 	{
 		C->AddMovementInput(Dir, Input);
 	}
-	const bool bRoute = Shot.Program == TEXT("route");
+	const bool bRoute = Shot.Program == TEXT("route") || Shot.Program == TEXT("story");
+	const bool bStory = Shot.Program == TEXT("story");
 	if (bRoute)
 	{
-		if (GetViewTarget() != C)
+		const AGIStory* StoryNow = AGIStory::Get(this);
+		if (GetViewTarget() != C && !(StoryNow && StoryNow->IsCinematic()))
 		{
 			SetViewTarget(C);
 		}
@@ -502,12 +654,12 @@ void AGIPlayerController::TickSequence(const FGIShot& Shot)
 		TitleCamera->SetActorLocationAndRotation(CamPos, (P - FVector(0, 0, 10.f) - CamPos).Rotation());
 	}
 
-	if (T >= SeqNext && SeqFrame < (bRoute ? 60 : 45))
+	if (T >= SeqNext && SeqFrame < (bStory ? 90 : (bRoute ? 60 : 45)))
 	{
-		SeqNext = T + (bRoute ? 4.f : 0.2f);
+		SeqNext = T + (bStory ? 12.f : (bRoute ? 4.f : 0.2f));
 		FScreenshotRequest::RequestScreenshot(FPaths::Combine(ShotDir, FString::Printf(TEXT("%s_%03d.png"), *Shot.Name, SeqFrame++)), false, false);
 	}
-	if (T > (bRoute ? 240.f : 10.f) || (bRoute && RouteIndex >= 10 && T > SeqNext - 3.f))
+	if (T > (bStory ? 1500.f : (bRoute ? 240.f : 10.f)) || (bStory && RouteIndex >= 999) || (!bStory && bRoute && RouteIndex >= 10 && T > SeqNext - 3.f))
 	{
 		++ShotIndex;
 		if (ShotIndex >= Shots.Num())
@@ -880,6 +1032,14 @@ void AGIPlayerController::OnSprintCompleted()
 
 void AGIPlayerController::OnInteract()
 {
+	if (AGIStory* Story = AGIStory::Get(this))
+	{
+		if (Story->IsCinematic())
+		{
+			Story->SkipLine();
+			return;
+		}
+	}
 	if (AGIPlayerCharacter* C = GetCharacter())
 	{
 		C->InputInteract();

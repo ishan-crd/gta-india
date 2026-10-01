@@ -7,6 +7,7 @@
 #include "GITrain.h"
 #include "GITraffic.h"
 #include "GIDharavi.h"
+#include "GIStory.h"
 #include "Engine/StaticMesh.h"
 #include "GTAIndia.h"
 #include "Camera/CameraComponent.h"
@@ -521,6 +522,15 @@ void AGIPlayerCharacter::UpdateInteraction()
 	{
 		return;
 	}
+	if (const AGIStory* Story = AGIStory::Get(this))
+	{
+		FString Who;
+		if (Story->CanTalk(this, Who))
+		{
+			Prompt = FText::Format(LOCTEXT("PromptTalk", "[E / X] {0} se baat karo"), FText::FromString(Who));
+			return;
+		}
+	}
 	if (FindNearbyBike(380.f))
 	{
 		Prompt = LOCTEXT("PromptBike", "[F / Y] Gaadi chalao");
@@ -658,6 +668,15 @@ void AGIPlayerCharacter::InputInteract()
 	if (bDead || IsRiding() || ActionTimer > 0.f)
 	{
 		return;
+	}
+	if (AGIStory* Story = AGIStory::Get(this))
+	{
+		FString Who;
+		if (Story->CanTalk(this, Who))
+		{
+			Story->Talk(this);
+			return;
+		}
 	}
 	for (TActorIterator<AGICricketGame> It(GetWorld()); It; ++It)
 	{

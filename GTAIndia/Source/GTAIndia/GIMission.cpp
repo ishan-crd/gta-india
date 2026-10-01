@@ -3,6 +3,7 @@
 #include "GIPlayerCharacter.h"
 #include "GIBike.h"
 #include "GIDharavi.h"
+#include "GIStory.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -69,6 +70,11 @@ void AGIMission::BeginPlay()
 	else
 	{
 		Marker->SetVisibility(false);
+	}
+	if (StoryMode())
+	{
+		Marker->SetVisibility(false);
+		return;
 	}
 	if (IsTour())
 	{
@@ -138,8 +144,26 @@ void AGIMission::TickTour(AGIPlayerCharacter* Player, const FVector& P)
 	RefreshMarker();
 }
 
+AGIStory* AGIMission::StoryMode() const
+{
+	return AGIStory::Get(this);
+}
+
+float AGIMission::GetTimeLeft() const
+{
+	if (const AGIStory* S = StoryMode())
+	{
+		return S->GetTimeLeft();
+	}
+	return bTimerRunning ? TimeLeft : -1.f;
+}
+
 FText AGIMission::GetTitle() const
 {
+	if (const AGIStory* S = StoryMode())
+	{
+		return S->GetTitle();
+	}
 	if (IsTour())
 	{
 		return FText::FromString(TourTitle);
@@ -149,6 +173,10 @@ FText AGIMission::GetTitle() const
 
 FText AGIMission::GetObjective() const
 {
+	if (const AGIStory* S = StoryMode())
+	{
+		return S->GetObjective();
+	}
 	if (IsTour())
 	{
 		return Objectives.IsValidIndex(ObjectiveIndex) ? FText::FromString(Objectives[ObjectiveIndex].Text)
@@ -166,6 +194,10 @@ FText AGIMission::GetObjective() const
 
 bool AGIMission::GetTarget(FVector& Out) const
 {
+	if (const AGIStory* S = StoryMode())
+	{
+		return S->GetTarget(Out);
+	}
 	if (IsTour())
 	{
 		if (Objectives.IsValidIndex(ObjectiveIndex))
@@ -186,6 +218,10 @@ bool AGIMission::GetTarget(FVector& Out) const
 
 FText AGIMission::GetBanner(float& OutAlpha) const
 {
+	if (const AGIStory* S = StoryMode())
+	{
+		return S->GetBanner(OutAlpha);
+	}
 	if (BannerTime <= 0.f)
 	{
 		OutAlpha = 0.f;
@@ -220,6 +256,19 @@ void AGIMission::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	BannerTime = FMath::Max(0.f, BannerTime - DeltaSeconds);
 	StageTimer += DeltaSeconds;
+	if (const AGIStory* Story = StoryMode())
+	{
+		FVector T;
+		const bool bHas = Story->GetTarget(T) && Story->WantsGroundMarker() && Marker->GetMaterial(0) != nullptr;
+		Marker->SetVisibility(bHas);
+		if (bHas)
+		{
+			const float Pulse = 1.f + 0.06f * FMath::Sin(GetWorld()->GetTimeSeconds() * 3.f);
+			Marker->SetWorldLocation(T - FVector(0, 0, 20.f));
+			Marker->SetWorldScale3D(FVector(1.6f * Pulse, 1.6f * Pulse, 1.2f));
+		}
+		return;
+	}
 
 	AGIPlayerCharacter* Player = GetPlayer();
 	if (!Player || Player->IsDead())

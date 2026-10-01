@@ -72,7 +72,7 @@ public:
 	FText GetObjective() const;
 	bool GetTarget(FVector& Out) const;
 	/** Seconds left on the delivery timer, < 0 when no timer runs. */
-	float GetTimeLeft() const { return bTimerRunning ? TimeLeft : -1.f; }
+	float GetTimeLeft() const;
 	/** Big centre-screen banner (e.g. "ORDER DELIVERED!"), empty when none. */
 	FText GetBanner(float& OutAlpha) const;
 
@@ -98,6 +98,7 @@ private:
 	int32 OrdersDone = 0;
 	int32 ObjectiveIndex = 0;
 	bool IsTour() const { return Objectives.Num() > 0; }
+	class AGIStory* StoryMode() const;
 	void TickTour(class AGIPlayerCharacter* Player, const FVector& P);
 	void RefreshMarker();
 };

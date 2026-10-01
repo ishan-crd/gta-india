@@ -1,4 +1,5 @@
 #include "GIDharavi.h"
+#include "GIStory.h"
 #include "GIAnimBudget.h"
 #include "GIAnimInstance.h"
 #include "GIAssetSettings.h"
@@ -324,6 +325,16 @@ FVector AGICricketGame::BallTargetNearPlayer() const
 	return T;
 }
 
+bool AGICricketGame::GetWaitingBall(FVector& Out) const
+{
+	if (State == EState::WaitPlayer && Ball)
+	{
+		Out = Ball->GetComponentLocation();
+		return true;
+	}
+	return false;
+}
+
 bool AGICricketGame::WantsBallFromPlayer(const AGIPlayerCharacter* Player) const
 {
 	return Player && State == EState::WaitPlayer && Ball && FVector::Dist2D(Player->GetActorLocation(), Ball->GetComponentLocation()) < 260.f;
@@ -644,6 +655,7 @@ void AGIWeather::BeginPlay()
 	for (TActorIterator<ADirectionalLight> It(GetWorld()); It; ++It)
 	{
 		Sun = *It;
+		SunBaseRotation = It->GetActorRotation();
 		if (ULightComponent* L = It->GetLightComponent())
 		{
 			SunIntensity = L->Intensity;
@@ -669,6 +681,10 @@ void AGIWeather::BeginPlay()
 		if (It->ActorHasTag(TEXT("StreetLight")))
 		{
 			StreetLights.Add(*It);
+		}
+		else if (It->ActorHasTag(TEXT("NightLight")))
+		{
+			NightLights.Add(*It);
 		}
 	}
 	UStaticMesh* Cyl = RainCurtainMesh ? RainCurtainMesh.Get() : LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
@@ -745,47 +761,110 @@ void AGIWeather::Tick(float DeltaSeconds)
 	}
 }
 
+void AGIWeather::SetHour(float InHour)
+{
+	Hour = InHour;
+	if (Hour >= 0.f && !Moon.IsValid())
+	{
+		FActorSpawnParameters P;
+		P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		if (ADirectionalLight* M = GetWorld()->SpawnActor<ADirectionalLight>(ADirectionalLight::StaticClass(), FVector(0, 0, 20000.f), FRotator(-48.f, 230.f, 0.f), P))
+		{
+			if (UDirectionalLightComponent* L = Cast<UDirectionalLightComponent>(M->GetLightComponent()))
+			{
+				L->SetMobility(EComponentMobility::Movable);
+				L->SetAtmosphereSunLight(false);
+				L->SetUseTemperature(true);
+				L->SetTemperature(9800.f);
+				L->SetIntensity(0.f);
+				L->SetCastShadows(true);
+				L->SetLightColor(FLinearColor(0.7f, 0.8f, 1.f));
+			}
+			Moon = M;
+		}
+	}
+	Apply();
+}
+
 void AGIWeather::Apply()
 {
 	const float R = FMath::SmoothStep(0.f, 1.f, Rain);
+	float Day = 1.f;
+	float Dusk = 0.f;
+	Night = 0.f;
+	if (Hour >= 0.f)
+	{
+		// sun: rises in the east at 6, peaks at noon (~72 deg), sets at 18:30
+		const float T = (Hour - 6.f) / 12.5f;
+		const float Elev = 72.f * FMath::Sin(T * PI);
+		Day = FMath::Clamp(Elev / 14.f, 0.f, 1.f);
+		Dusk = FMath::Clamp(1.f - FMath::Abs(Elev - 4.f) / 22.f, 0.f, 1.f) * (Elev > -6.f ? 1.f : 0.f);
+		Night = 1.f - FMath::SmoothStep(-7.f, 3.f, Elev);
+		if (ADirectionalLight* S = Sun.Get())
+		{
+			const float Yaw = 75.f + FMath::Clamp(T, -0.2f, 1.2f) * 170.f;
+			// below the horizon the light points up so the sky goes dark blue
+			S->SetActorRotation(FRotator(-FMath::Max(Elev, -4.f), Yaw, 0.f));
+		}
+	}
 	if (ADirectionalLight* S = Sun.Get())
 	{
 		if (ULightComponent* L = S->GetLightComponent())
 		{
-			L->SetIntensity(FMath::Lerp(SunIntensity, SunIntensity * 0.08f, R));
-			L->SetTemperature(FMath::Lerp(SunTemp, 7600.f, R));
+			L->SetIntensity(FMath::Lerp(SunIntensity, SunIntensity * 0.08f, R) * Day);
+			const float Temp = FMath::Lerp(SunTemp, 3100.f, Dusk);
+			L->SetTemperature(FMath::Lerp(Temp, 7600.f, R));
 		}
+	}
+	if (ADirectionalLight* M = Moon.Get())
+	{
+		M->GetLightComponent()->SetIntensity(0.55f * Night * (1.f - 0.6f * R));
 	}
 	if (ASkyLight* S = Sky.Get())
 	{
-		S->GetLightComponent()->SetIntensity(FMath::Lerp(SkyIntensity, SkyIntensity * 0.7f, R));
+		S->GetLightComponent()->SetIntensity(FMath::Lerp(SkyIntensity, SkyIntensity * 0.7f, R) * FMath::Lerp(0.16f, 1.f, FMath::Max(Day, 1.f - Night)));
 	}
 	if (AExponentialHeightFog* F = Fog.Get())
 	{
 		F->GetComponent()->SetFogDensity(FMath::Lerp(FogDensity, FogDensity * 3.f, R));
-		F->GetComponent()->SetFogInscatteringColor(FMath::Lerp(FogInscatter, FLinearColor(0.16f, 0.2f, 0.26f), R));
+		FLinearColor In = FMath::Lerp(FogInscatter, FLinearColor(0.75f, 0.45f, 0.28f), Dusk * 0.6f);
+		In = FMath::Lerp(In, FLinearColor(0.025f, 0.03f, 0.05f), Night);
+		F->GetComponent()->SetFogInscatteringColor(FMath::Lerp(In, FLinearColor(0.16f, 0.2f, 0.26f) * FMath::Lerp(1.f, 0.25f, Night), R));
 	}
+	const float Lamps = FMath::Max(R, FMath::SmoothStep(0.25f, 0.8f, Night + 0.3f * Dusk));
 	for (const TWeakObjectPtr<AActor>& A : StreetLights)
 	{
 		if (const ALight* L = Cast<ALight>(A.Get()))
 		{
-			L->GetLightComponent()->SetVisibility(R > 0.05f);
-			L->GetLightComponent()->SetIntensity(5000.f * R);
+			L->GetLightComponent()->SetVisibility(Lamps > 0.05f);
+			L->GetLightComponent()->SetIntensity(5000.f * Lamps);
+		}
+	}
+	for (const TWeakObjectPtr<AActor>& A : NightLights)
+	{
+		if (const ALight* L = Cast<ALight>(A.Get()))
+		{
+			const float N = FMath::SmoothStep(0.3f, 0.9f, Night + 0.25f * Dusk);
+			L->GetLightComponent()->SetVisibility(N > 0.05f);
+			L->GetLightComponent()->SetIntensity(1800.f * N);
 		}
 	}
 	if (WeatherCollection)
 	{
 		UKismetMaterialLibrary::SetScalarParameterValue(this, WeatherCollection, TEXT("Wetness"), R);
-		UKismetMaterialLibrary::SetScalarParameterValue(this, WeatherCollection, TEXT("NightGlow"), 0.25f + 0.75f * R);
+		UKismetMaterialLibrary::SetScalarParameterValue(this, WeatherCollection, TEXT("NightGlow"), 0.25f + 0.75f * FMath::Max(R, Night));
 	}
+	const AGIStory* Story = AGIStory::Get(this);
+	const bool bCine = Story && Story->IsCinematic();
 	for (UStaticMeshComponent* C : { Curtain.Get(), CurtainInner.Get() })
 	{
 		if (C)
 		{
-			C->SetVisibility(R > 0.02f);
+			C->SetVisibility(R > 0.02f && !bCine);
 			if (UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(C->GetMaterial(0)))
 			{
-				MID->SetScalarParameterValue(TEXT("Amount"), R);
+				// at night the lamp-lit streaks read too hard: thinner curtain
+				MID->SetScalarParameterValue(TEXT("Amount"), R * (1.f - 0.5f * Night));
 			}
 		}
 	}

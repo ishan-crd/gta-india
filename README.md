@@ -23,6 +23,23 @@ rain, mirror-wet streets, umbrellas (toggle the weather from the pause menu).
 Built by `tools/ue/05b_build_mumbai.py` from the Dharavi, Trial-lane and Mumbai kits
 (`tools/blender/kit_dharavi.py`, `kit_trial.py`, `kit_mumbai.py`).
 
+### Story mission: Saraswati Kahan Hai?
+
+Mumbai opens with a story mission. Shankar arrives from his village to find his wife Saraswati, who stopped
+writing three months ago. Dawn in the blue lane, Lakshmi Tai at her door, the kids' cricket and Chhotu's
+shortcut through the gallis, Kamla Mausi at the sabzi mandi, Pappu's chai tapri on the main road, tailing
+Bhau's man Raghu to the Ganesh pandal (too close or too far and the mission fails), then a race through the
+monsoon night to the station platform before Bhau's men get there. GTA-style presentation: chapter cards,
+cutscenes with cinematic cuts, letterbox and voiced Hindi dialogue with subtitles ([E] skips a line),
+characters turning and gesturing, fades through black for time skips, a clock running from 07:00 into the
+night (sun, dusk light, moon, street lamps and bulbs in the gallis), mission failed / retry, an end card and
+credits - then free roam with Saraswati walking beside you.
+
+- Story system: `GTAIndia/Source/GTAIndia/GIStory.*` (beats, cast placements, scenes, follow / tail).
+- Script and voices: `tools/story/saraswati_lines.py`, voiced by `tools/audio/story_voices.py` (edge-tts),
+  imported by `tools/ue/18_story_audio.py`; beats and positions are set up in `tools/ue/05b_build_mumbai.py`.
+- Testing a scene: a shot line `name story <beat> <line> [hour]` jumps there and holds the line.
+
 ## Layout
 
 | Path | What |

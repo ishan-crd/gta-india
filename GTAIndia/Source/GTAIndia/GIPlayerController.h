@@ -40,6 +40,7 @@ public:
 	void StartCity(FName MapName);
 	/** Current map is the Mumbai / Dharavi one. */
 	bool IsMumbai() const;
+	bool IsInGame() const { return bInGame; }
 	/** Pause menu: toggle the monsoon (Dharavi). */
 	void ToggleWeather();
 	void ResumeGame();

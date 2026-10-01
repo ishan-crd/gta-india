@@ -47,6 +47,9 @@ private:
 	void DrawBanner(float S);
 	void DrawDeath(float S);
 	void DrawFPS(float S);
+	/** Story overlays: letterbox, subtitles, chapter / end cards, fades. Returns true while cinematic. */
+	bool DrawStory(float S);
+	TArray<FString> Wrap(const FString& Str, UFont* Font, float Scale, float MaxW);
 
 	void Rect(float X, float Y, float W, float H, const FLinearColor& C);
 	void Text(const FString& Str, float X, float Y, UFont* Font, float Scale, const FLinearColor& C, bool bCenterX = false, bool bShadow = true);

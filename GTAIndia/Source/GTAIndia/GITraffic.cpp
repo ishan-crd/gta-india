@@ -193,7 +193,7 @@ bool AGITraffic::TakeVehicle(const FVector& Location, float MaxDist, FTransform&
 	}
 	FVehicle& V = Vehicles[Best];
 	const float Dir = Lanes[V.Lane].Direction >= 0.f ? 1.f : -1.f;
-	OutTransform = FTransform(FRotator(0.f, Dir > 0.f ? 0.f : 180.f, 0.f), V.Comp->GetComponentLocation());
+	OutTransform = FTransform(FRotator(0.f, (Dir > 0.f ? 0.f : 180.f) + GetActorRotation().Yaw, 0.f), V.Comp->GetComponentLocation());
 	OutMesh = V.Comp->GetStaticMesh();
 	OutMeshYaw = V.MeshYaw;
 	bOutFourWheeler = V.bFourWheeler;
@@ -215,7 +215,9 @@ void AGITraffic::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	const APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
-	const FVector P = Player ? Player->GetActorLocation() : FVector(1e9f);
+	const FTransform RoadXf = GetActorTransform();
+	const float RoadYaw = GetActorRotation().Yaw;
+	const FVector P = Player ? RoadXf.InverseTransformPosition(Player->GetActorLocation()) : FVector(1e9f);
 	const float Now = GetWorld()->GetTimeSeconds();
 
 	SignificanceTimer -= DeltaSeconds;
@@ -257,8 +259,8 @@ void AGITraffic::Tick(float DeltaSeconds)
 			&& V.Comp->Bounds.GetBox().ExpandBy(25.f).IsInsideOrOn(PlayerChar->GetActorLocation()))
 		{
 			const float Dir = L.Direction >= 0.f ? 1.f : -1.f;
-			const float Side = PlayerChar->GetActorLocation().Y >= L.Y ? 1.f : -1.f;
-			PlayerChar->LaunchCharacter(FVector(Dir * V.Speed * 0.8f, Side * 500.f, 320.f), true, true);
+			const float Side = RoadXf.InverseTransformPosition(PlayerChar->GetActorLocation()).Y >= L.Y ? 1.f : -1.f;
+			PlayerChar->LaunchCharacter(RoadXf.TransformVectorNoScale(FVector(Dir * V.Speed * 0.8f, Side * 500.f, 0.f)) + FVector(0.f, 0.f, 320.f), true, true);
 			if (AGIPlayerCharacter* GI = Cast<AGIPlayerCharacter>(PlayerChar))
 			{
 				GI->ApplyDamageSimple(10.f, false);
@@ -310,14 +312,14 @@ void AGITraffic::Tick(float DeltaSeconds)
 		}
 		const float Sway = 10.f * FMath::Sin(Now * 0.7f + V.Wobble);
 		const float TravelYaw = Dir > 0.f ? 0.f : 180.f;
-		const FVector VLoc(V.X, L.Y + Sway, L.Z);
-		V.Comp->SetWorldLocationAndRotation(VLoc, FRotator(0.f, TravelYaw + V.MeshYaw, 0.f));
-		const FRotator TravelRot(0.f, TravelYaw, 0.f);
+		const FVector VLoc = RoadXf.TransformPosition(FVector(V.X, L.Y + Sway, L.Z));
+		V.Comp->SetWorldLocationAndRotation(VLoc, FRotator(0.f, TravelYaw + V.MeshYaw + RoadYaw, 0.f));
+		const FRotator TravelRot(0.f, TravelYaw + RoadYaw, 0.f);
 		for (int32 r = 0; r < V.Riders.Num(); ++r)
 		{
 			if (V.Riders[r])
 			{
-				V.Riders[r]->SetWorldLocationAndRotation(VLoc + TravelRot.RotateVector(V.RiderOffsets[r]), FRotator(0.f, TravelYaw - 90.f, 0.f));
+				V.Riders[r]->SetWorldLocationAndRotation(VLoc + TravelRot.RotateVector(V.RiderOffsets[r]), FRotator(0.f, TravelYaw + RoadYaw - 90.f, 0.f));
 			}
 		}
 	}

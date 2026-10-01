@@ -236,11 +236,34 @@ def thunder(sec=7.0):
     return crack + rumble * env
 
 
+def stinger(sec=3.2):
+    """Chapter card hit: a low dhol boom, a tabla flick and a tanpura-like drone swelling under it."""
+    x = t(sec)
+    drone = sum(np.sin(2 * np.pi * f * x + p) * a for f, a, p in ((73.4, 0.5, 0.0), (110.0, 0.35, 1.0), (146.8, 0.25, 2.0), (220.0, 0.12, 0.5)))
+    drone *= np.minimum(1.0, x / 0.4) * np.exp(-x * 0.9)
+    boom = np.sin(2 * np.pi * (55 + 40 * np.exp(-x * 18)) * x) * np.exp(-x * 4.5) * 1.4
+    flick = np.zeros_like(x)
+    for at, f0 in ((0.0, 330.0), (0.18, 440.0), (0.27, 392.0)):
+        k = (x >= at)
+        xx = (x - at) * k
+        flick += k * np.sin(2 * np.pi * f0 * xx * (1 + 0.04 * np.exp(-xx * 30))) * np.exp(-xx * 16) * 0.5
+    return drone + boom + flick
+
+
+def fail_sting(sec=2.6):
+    """Mission failed: a falling two-note brass-ish groan."""
+    x = t(sec)
+    f = np.where(x < 0.9, 220.0, 196.0 - 30 * (x - 0.9))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    y = sum(np.sin(ph * h) / h for h in range(1, 7))
+    return y * np.minimum(1.0, x / 0.05) * np.exp(-np.maximum(x - 0.9, 0) * 1.6) * 0.8
+
+
 if __name__ == "__main__":
     import sys
     only = set(sys.argv[1:])
     if only:
-        gens = {"A_Rain": rain_loop, "S_Thunder": thunder}
+        gens = {"A_Rain": rain_loop, "S_Thunder": thunder, "S_Stinger": stinger, "S_MissionFail": fail_sting}
         for name in only:
             write(name, gens[name]())
         raise SystemExit(0)
@@ -257,3 +280,5 @@ if __name__ == "__main__":
     write("S_Cash", cash())
     write("A_Rain", rain_loop())
     write("S_Thunder", thunder())
+    write("S_Stinger", stinger())
+    write("S_MissionFail", fail_sting())

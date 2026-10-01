@@ -36,12 +36,12 @@ SQ_Y0, SQ_Y1 = -800, 1400
 PLAYER_START = unreal.Vector(150, -20, 100)
 
 # district extents
-W_X0, W_X1 = -15000, 4700           # west block of gallis (ends at the market street's back walls)
-E_X0, E_X1 = 7300, 15000            # east block
+W_X0, W_X1 = -24000, 4700           # west block of gallis (ends at the market street's back walls)
+E_X0, E_X1 = 7300, 24000            # east block
 GALLI_HALF = 160                    # half the clear width between house fronts
 GALLIS = [-4400, -2200, 2200, 4400]  # E-W gallis besides the Trial lane (Y = 0)
 EAST_GALLIS = GALLIS + [0]           # east of the market the Y 0 line is an ordinary galli
-ALLEYS = [-12000, -9000, -6000, -3000, 9800, 12500]   # N-S alleys (3 m)
+ALLEYS = [-21000, -18000, -15000, -12000, -9000, -6000, -3000, 9800, 12500, 15500, 18500, 21500]   # N-S alleys (3 m)
 ALLEY_HALF = 150
 
 CHAWL_S_EDGE, CHAWL_N_EDGE = 6770, 7470          # chawl street fronts (7 m)
@@ -58,12 +58,20 @@ ROAD_X0, ROAD_X1 = -30000, 30000
 RAIL_S_EDGE = 9300                  # fronts of the shacks facing the tracks (south side)
 TRACK_Y = (9600, 10100)
 RAIL_N_EDGE = 10400
-PLATFORM_X = (-2000, 2000)
+PLATFORM_X = (18000, 22000)
 
 GATE_X = -3000                      # concrete gateway from the main road into the alley
+LINK_X = (-27000, 27000)            # N-S link roads at both ends of the district (12 m + footpaths)
+LINK_HALF = 600
+LINK_EDGE = 1000                    # shop fronts this far from the link road centre
+LINK_Y0, LINK_Y1 = -5400, 8650      # building rows along the link roads
+CHAWL_X = 24400                     # the chawl street runs -CHAWL_X..CHAWL_X
 CHAI = unreal.Vector(4650, SHOP_N_EDGE - 150, 0)
 PANDAL_X = 2100
 CHAWL_CRICKET_X = -8000
+KAMLA = (5880, 3350)                # Kamla Mausi's sabzi thela in the market
+LAKSHMI = (1150, 120)               # Lakshmi Tai at her door in the blue lane
+CHHOTU = (3050, 1150)               # Chhotu watching the match from the square's edge
 
 TRIAL_HOUSES = [f"Trial_House_{i:02d}" for i in range(1, 11)]
 SHANTY_1F = [f"Shanty_1F_{i:02d}" for i in range(1, 9)]
@@ -79,6 +87,11 @@ LEFT_ORDER = ["Trial_House_03", "Trial_House_07", "Trial_House_01", "Trial_House
               "Trial_House_06", "Trial_House_10", "Trial_House_02", "Trial_House_08"]
 RIGHT_ORDER = ["Trial_House_05", "Trial_House_10", "Trial_House_02", "Trial_House_08", "Trial_House_04", "Trial_House_07",
                "Trial_House_09", "Trial_House_01", "Trial_House_03", "Trial_House_06"]
+
+# (mesh, yaw that turns its front to +X): kaali-peeli, autos and the BEST bus face -X / +X differently
+FLEET = [("AutoMumbai", 0.0), ("AutoMumbai", 0.0), ("AutoMumbai", 0.0), ("TaxiKaaliPeeli2", 0.0), ("TaxiKaaliPeeli2", 0.0),
+         ("TaxiKaaliPeeli2", 0.0), ("BusBEST", 180.0), ("ScooterActiva", 0.0), ("ScooterActiva", 0.0), ("BikePulsar135", 180.0),
+         ("CarWagonR", 180.0)]
 
 BOUNDS = {}
 
@@ -102,6 +115,10 @@ def depth_ok(n, max_depth):
 
 def near_alley(a0, a1):
     return any(a0 < ax + ALLEY_HALF + 40 and a1 > ax - ALLEY_HALF - 40 for ax in ALLEYS)
+
+
+def near_link(a0, a1):
+    return any(a0 < lx + LINK_EDGE + 100 and a1 > lx - LINK_EDGE - 100 for lx in LINK_X)
 
 
 def in_square_zone(x0, x1):
@@ -314,12 +331,12 @@ def build_chawl(sc, props, spots, lanes):
 
     def skip_n(a, b):
         return near_alley(a, b) or (a < PANDAL_X + 380 and b > PANDAL_X - 380)
-    run(sc, props, spots, TENEMENT + SHANTY_2F, "x", CHAWL_S_EDGE, -1, -16000, 16000, CHAWL_S_EDGE - 5500, skip_s, gap=(0, 30))
-    run(sc, props, spots, TENEMENT + SHANTY_2F, "x", CHAWL_N_EDGE, 1, -16000, 16000, 1240, skip_n, gap=(0, 30))
-    lanes.append({"start": (-16000, CHAWL_Y, 0), "end": (16000, CHAWL_Y, 0), "width": 420, "weight": 1.0})
+    run(sc, props, spots, TENEMENT + SHANTY_2F, "x", CHAWL_S_EDGE, -1, -CHAWL_X, CHAWL_X, CHAWL_S_EDGE - 5500, skip_s, gap=(0, 30))
+    run(sc, props, spots, TENEMENT + SHANTY_2F, "x", CHAWL_N_EDGE, 1, -CHAWL_X, CHAWL_X, 1240, skip_n, gap=(0, 30))
+    lanes.append({"start": (-CHAWL_X, CHAWL_Y, 0), "end": (CHAWL_X, CHAWL_Y, 0), "width": 420, "weight": 1.0})
     # laundry high across, wires, neon / signs on a few shops, tarps
-    x = -15500
-    while x < 15500:
+    x = -CHAWL_X + 500
+    while x < CHAWL_X - 500:
         if not near_alley(x - 300, x + 300) and abs(x - PANDAL_X) > 2500:
             r = R.random()
             if r < 0.3:
@@ -331,20 +348,13 @@ def build_chawl(sc, props, spots, lanes):
             props.append(("Tarp_Canopy_3m", x, (CHAWL_N_EDGE - 150) if side > 0 else (CHAWL_S_EDGE + 150),
                           0, 0 if side > 0 else 180, 1.0))
         x += R.uniform(500, 1100)
-    for i in range(140):
-        spots.append({"loc": (R.uniform(-15000, 15000), CHAWL_Y + R.uniform(-250, 250), 0), "yaw": R.uniform(-180, 180),
+    for i in range(220):
+        spots.append({"loc": (R.uniform(-CHAWL_X, CHAWL_X), CHAWL_Y + R.uniform(-250, 250), 0), "yaw": R.uniform(-180, 180),
                       "mode": R.choice(["Talk", "Talk", "Locomotion", "Sit", "SitTalk"]), "priority": 0.55})
     # Ganesh pandal under festoon lights
     pz = CHAWL_N_EDGE + 40
     props.append(("Pandal_Ganesh", PANDAL_X, pz, 0, 0, 1.0))
     props.append(("Ganpati", PANDAL_X, pz + 295, 70, 0, 1.0))
-    for k, col in enumerate(((255, 60, 200), (60, 255, 120), (255, 200, 60), (90, 140, 255))):
-        light = spawn(unreal.PointLight, unreal.Vector(PANDAL_X - 450 + k * 300, CHAWL_Y - 150, 460), label="PandalLight")
-        lc = light.get_component_by_class(unreal.PointLightComponent)
-        lc.set_editor_property("intensity", 150.0)
-        lc.set_editor_property("attenuation_radius", 600.0)
-        lc.set_editor_property("light_color", unreal.Color(col[0], col[1], col[2], 255))
-        lc.set_editor_property("cast_shadows", False)
     for i in range(26):   # a crowd dancing / praying at the pandal
         spots.append({"loc": (PANDAL_X + R.uniform(-500, 500), CHAWL_Y + R.uniform(-250, 220), 0),
                       "yaw": 90 + R.uniform(-50, 50), "mode": R.choice(["Talk", "Talk", "SitTalk"]), "priority": 1.4})
@@ -361,6 +371,8 @@ def build_market(sc, props, spots, lanes):
     y = y0
     while y < y1:
         for side in (-1, 1):
+            if side < 0 and abs(y - KAMLA[1]) < 450:
+                continue                     # Kamla Mausi's own thela
             if R.random() < 0.8:
                 ex = MARKET_W_EDGE + 110 if side < 0 else MARKET_E_EDGE - 110
                 if R.random() < 0.5:
@@ -378,6 +390,9 @@ def build_market(sc, props, spots, lanes):
                 spots.append({"loc": (ex + side * 80, y + R.uniform(-60, 60), 0), "yaw": 0 if side < 0 else 180,
                               "mode": "Talk", "priority": 1.3})
         y += R.uniform(380, 520)
+    props.append(("Veg_Cart", MARKET_W_EDGE + 100, KAMLA[1] + 330, 0, 90, 1.0))
+    props.append(("Tarp_Canopy_3m", MARKET_W_EDGE + 40, KAMLA[1] + 250, 0, 90, 1.0))
+    props.append(("Sack_Pile_02", MARKET_W_EDGE + 70, KAMLA[1] - 160, 0, 30, 1.0))
     for i in range(110):
         spots.append({"loc": (MARKET_X + R.uniform(-150, 150), R.uniform(y0, y1), 0), "yaw": R.uniform(-180, 180),
                       "mode": R.choice(["Talk", "Locomotion", "Talk"]), "priority": 0.9})
@@ -386,19 +401,19 @@ def build_market(sc, props, spots, lanes):
 def build_main_road(sc, props, spots, lanes):
     def skip_n(a, b):
         return (a < MARKET_E_EDGE + 150 and b > MARKET_W_EDGE - 150) or (a < GATE_X + 420 and b > GATE_X - 420) or \
-            (a < CHAI.x + 300 and b > CHAI.x - 300)
+            (a < CHAI.x + 300 and b > CHAI.x - 300) or near_link(a, b)
     town_or_tenement = TENEMENT + TOWN
     mats = lambda n: sign_mats(n) if n.startswith("Bldg_Town") else None
     run(sc, props, spots, town_or_tenement, "x", SHOP_N_EDGE, 1, ROAD_X0, ROAD_X1, -5500 - SHOP_N_EDGE, skip_n, decor=False,
         gap=(0, 30), mats_fn=mats, big_gaps=False)
-    run(sc, props, spots, town_or_tenement, "x", SHOP_S_EDGE, -1, ROAD_X0, ROAD_X1, 1400, None, decor=False, gap=(0, 30), mats_fn=mats,
+    run(sc, props, spots, town_or_tenement, "x", SHOP_S_EDGE, -1, ROAD_X0, ROAD_X1, 1400, near_link, decor=False, gap=(0, 30), mats_fn=mats,
         big_gaps=False)
     # neon signs / tarps along the shop fronts
     x = ROAD_X0
     while x < ROAD_X1:
         for side in (1, -1):
             edge = SHOP_N_EDGE if side > 0 else SHOP_S_EDGE
-            if side > 0 and skip_n(x - 100, x + 100):
+            if (side > 0 and skip_n(x - 100, x + 100)) or near_link(x - 100, x + 100):
                 continue
             if R.random() < 0.45:
                 props.append((f"Neon_Sign_{R.randint(1, 6):02d}", x, edge - side * 30, R.uniform(330, 500), 0 if side > 0 else 180, 1.0))
@@ -408,6 +423,8 @@ def build_main_road(sc, props, spots, lanes):
     # street lights (switched on by the weather) and poles
     for side in (1, -1):
         for lx in range(ROAD_X0 + 1000, ROAD_X1, 2600):
+            if near_link(lx - 100, lx + 100):
+                continue
             y = ROAD_C + side * (ROAD_HALF + 120)
             props.append(("Electric_Pole", lx, y, 0, 0 if side > 0 else 180, 1.0))
             light = spawn(unreal.PointLight, unreal.Vector(lx, y - side * 150, 760), label="StreetLight")
@@ -453,39 +470,145 @@ def build_rail(sc, props, spots, lanes):
             sc.add("Rail_Track_20m", xf(gx, ty, -75))
     # shacks built right up to the ballast on both sides, a station platform on the north side
     def skip_n(a, b):
-        return a < PLATFORM_X[1] + 600 and b > PLATFORM_X[0] - 600
-    run(sc, props, spots, SHACKS * 3 + SHANTY_1F, "x", RAIL_S_EDGE, -1, -16000, 16000, 580, None, gap=(0, 40))
+        return (a < PLATFORM_X[1] + 600 and b > PLATFORM_X[0] - 600) or near_link(a, b)
+    run(sc, props, spots, SHACKS * 3 + SHANTY_1F, "x", RAIL_S_EDGE, -1, -30000, 30000, 580,
+        lambda a, b: near_link(a, b) or near_alley(a, b), gap=(0, 40))
     run(sc, props, spots, SHACKS * 3 + SHANTY_1F, "x", RAIL_N_EDGE, 1, -30000, 30000, 900, skip_n, gap=(0, 40))
-    run(sc, props, spots, SHACKS, "x", RAIL_S_EDGE, -1, -30000, -16200, 700, None, decor=False)
-    run(sc, props, spots, SHACKS, "x", RAIL_S_EDGE, -1, 16200, 30000, 700, None, decor=False)
     props.append(("Rail_Platform_40m", (PLATFORM_X[0] + PLATFORM_X[1]) / 2, TRACK_Y[1] + 265, 0, 0, 1.0))
     # people walking along / across the tracks, on the platform
-    lanes.append({"start": (-16000, RAIL_S_EDGE + 140, 0), "end": (16000, RAIL_S_EDGE + 140, 0), "width": 120, "weight": 0.35})
+    lanes.append({"start": (-24000, RAIL_S_EDGE + 140, 0), "end": (24000, RAIL_S_EDGE + 140, 0), "width": 120, "weight": 0.35})
     for i in range(30):
         spots.append({"loc": (R.uniform(PLATFORM_X[0] + 200, PLATFORM_X[1] - 200), TRACK_Y[1] + 265 + R.uniform(80, 380), 90),
                       "yaw": -90 + R.uniform(-40, 40), "mode": R.choice(["Talk", "Talk", "Locomotion"]), "priority": 1.0})
-    for i in range(40):
+    for i in range(60):
         side = R.choice([-1, 1])
-        props.append((R.choice(["Litter_Patch_0", "Litter_Patch_1", "Garbage_Heap_0", "Garbage_Heap_1"]), R.uniform(-16000, 16000),
+        props.append((R.choice(["Litter_Patch_0", "Litter_Patch_1", "Garbage_Heap_0", "Garbage_Heap_1"]), R.uniform(-26000, 26000),
                       (RAIL_S_EDGE + R.uniform(30, 120)) if side < 0 else (RAIL_N_EDGE - R.uniform(30, 120)), 1, R.uniform(0, 360), R.uniform(0.5, 0.9)))
 
 
 def build_boundary(sc, props):
     """Walls round the district (the towers sit behind them), across the main road ends and the track ends."""
-    for x in range(-30500, 31000, 1000):
+    for x in range(-31500, 32000, 1000):
         sc.add("Wall_Boundary_10m", xf(x, RAIL_N_EDGE + 1000, 0))
         sc.add("Wall_Boundary_10m", xf(x, SHOP_S_EDGE - 1550, 0, 180))
-    for y in range(int(SHOP_N_EDGE + 1300), int(RAIL_N_EDGE + 1000), 1000):
+    for y in range(int(LINK_Y0), int(RAIL_N_EDGE + 1000), 1000):
         if RAIL_S_EDGE - 400 < y < RAIL_N_EDGE + 400:
             continue                      # the trains run through
-        sc.add("Wall_Boundary_10m", xf(-16300, y, 0, 90))
-        sc.add("Wall_Boundary_10m", xf(16300, y, 0, -90))
-    for x in (-28500, 28500):
+        sc.add("Wall_Boundary_10m", xf(-29500, y, 0, 90))
+        sc.add("Wall_Boundary_10m", xf(29500, y, 0, -90))
+    for x in (-30600, 30600):
         for y in range(int(SHOP_S_EDGE - 1500), int(SHOP_N_EDGE + 1600), 1000):
             sc.add("Wall_Boundary_10m", xf(x, y, 0, 90))
-    for x in (-31000, 31000):
+    for x in (-31500, 31500):
         for y in range(int(RAIL_S_EDGE - 1500), int(RAIL_N_EDGE + 1100), 1000):
             sc.add("Wall_Boundary_10m", xf(x, y, 0, 90))
+
+
+def build_link_roads(sc, props, spots, lanes):
+    """Two N-S roads closing the district at both ends: shop-houses, street lights, traffic crossing the main road
+    and the tracks. The gallis, the Trial lane line and the chawl street open onto them."""
+    mats = lambda n: sign_mats(n) if n.startswith("Bldg_Town") else None
+    openings = [(gy, GALLI_HALF + 140) for gy in EAST_GALLIS] + [(CHAWL_Y, 480)]
+
+    def skip(a, b):
+        return any(a < c + h and b > c - h for c, h in openings)
+    for lx in LINK_X:
+        inner = 1 if lx < 0 else -1               # the side facing the district
+        # inner row (backs onto the galli ends), outer row (backs onto the boundary wall)
+        run(sc, props, spots, TENEMENT + TOWN + SHANTY_2F, "y", lx + inner * LINK_EDGE, inner, LINK_Y0, LINK_Y1, 1150, skip,
+            decor=False, gap=(0, 30), mats_fn=mats, big_gaps=False)
+        run(sc, props, spots, TENEMENT + TOWN, "y", lx - inner * LINK_EDGE, -inner, LINK_Y0, LINK_Y1, 1250, None,
+            decor=False, gap=(0, 30), mats_fn=mats, big_gaps=False)
+        # asphalt + footpaths
+        for gy in range(-10000, 11001, 2000):
+            sc.add("Ground_Tile_20m", unreal.Transform(location=unreal.Vector(lx, gy, 2), rotation=unreal.Rotator(0, 0, 0),
+                                                       scale=unreal.Vector(LINK_HALF * 2 / 2000.0, 1, 1)), mats=("MI_Asphalt",))
+            for side in (-1, 1):
+                sc.add("Ground_Tile_20m", unreal.Transform(location=unreal.Vector(lx + side * (LINK_HALF + 200), gy, 4),
+                                                           rotation=unreal.Rotator(0, 0, 0), scale=unreal.Vector(0.2, 1, 1)),
+                       mats=("MI_Concrete",))
+        props.append(("Road_Zebra_14m", lx, ROAD_C + 1600, 1, 90, 0.9))
+        for side in (-1, 1):
+            for ly in range(int(LINK_Y0) + 800, int(LINK_Y1), 2600):
+                x = lx + side * (LINK_HALF + 120)
+                props.append(("Electric_Pole", x, ly, 0, 90 if side > 0 else -90, 1.0))
+                light = spawn(unreal.PointLight, unreal.Vector(x - side * 150, ly, 760), label="StreetLight")
+                light.tags = ["StreetLight"]
+                lc = light.get_component_by_class(unreal.PointLightComponent)
+                lc.set_editor_property("intensity", 0.0)
+                lc.set_editor_property("attenuation_radius", 1800.0)
+                lc.set_editor_property("light_color", unreal.Color(255, 205, 150, 255))
+                lc.set_editor_property("cast_shadows", False)
+                lc.set_editor_property("visible", False)
+            lanes.append({"start": (lx + side * (LINK_HALF + 200), LINK_Y0, 0), "end": (lx + side * (LINK_HALF + 200), LINK_Y1, 0),
+                          "width": 200, "weight": 0.6})
+        for i in range(30):
+            side = R.choice([-1, 1])
+            spots.append({"loc": (lx + side * R.uniform(LINK_HALF + 80, LINK_HALF + 330), R.uniform(LINK_Y0, LINK_Y1), 0),
+                          "yaw": R.uniform(-180, 180), "mode": R.choice(["Talk", "Talk", "Sit"]), "priority": 0.55})
+        # traffic along the link road (lanes in the road's own frame: heading +X local the left side is -Y local)
+        traffic = spawn(unreal.GITraffic, unreal.Vector(lx, 0, 0), unreal.Rotator(roll=0, pitch=0, yaw=90), label="LinkTraffic")
+        lanes_t = []
+        for y, d in ((-300, 1.0), (300, -1.0)):
+            tl = unreal.GITrafficLane()
+            tl.set_editor_property("y", float(y))
+            tl.set_editor_property("z", 4.0)
+            tl.set_editor_property("direction", d)
+            tl.set_editor_property("count", 5)
+            lanes_t.append(tl)
+        traffic.set_editor_property("lanes", lanes_t)
+        traffic.set_editor_property("min_x", float(SHOP_S_EDGE - 1450))
+        traffic.set_editor_property("max_x", float(RAIL_N_EDGE + 900))
+        traffic.set_editor_property("speed", 520.0)
+        fleet = [(mesh(n), y) for n, y in FLEET if mesh(n)]
+        traffic.set_editor_property("vehicle_meshes", [m for m, _ in fleet])
+        traffic.set_editor_property("vehicle_mesh_yaws", [float(y) for _, y in fleet])
+
+
+def build_night_lights(lanes):
+    """Bare bulbs over doors in the gallis, the chawl, the market and the Trial lane - off by day, the weather
+    switches them on at dusk."""
+    def bulb(x, y, z=290.0, color=(255, 176, 110)):
+        light = spawn(unreal.PointLight, unreal.Vector(x, y, z), label="NightLight")
+        light.tags = ["NightLight"]
+        lc = light.get_component_by_class(unreal.PointLightComponent)
+        lc.set_editor_property("intensity", 0.0)
+        lc.set_editor_property("attenuation_radius", 850.0)
+        lc.set_editor_property("source_radius", 4.0)
+        lc.set_editor_property("light_color", unreal.Color(*color, 255))
+        lc.set_editor_property("cast_shadows", False)
+        lc.set_editor_property("visible", False)
+    n = 0
+    for gy in EAST_GALLIS:
+        for (x0, x1) in ((W_X0, W_X1), (E_X0, E_X1)):
+            if gy == 0 and x0 == W_X0:
+                x0 = W_X0
+            x = x0 + R.uniform(200, 900)
+            k = 0
+            while x < x1:
+                bulb(x, gy + (GALLI_HALF - 20) * (1 if k % 2 else -1))
+                n += 1
+                k += 1
+                x += R.uniform(1500, 2100)
+    x = -CHAWL_X + 600
+    k = 0
+    while x < CHAWL_X:
+        bulb(x, CHAWL_Y + 300 * (1 if k % 2 else -1), 380.0, (255, 190, 130))
+        n += 1
+        k += 1
+        x += R.uniform(1300, 1800)
+    for y in range(int(SHOP_N_EDGE + 1600), int(CHAWL_S_EDGE), 1300):
+        bulb(MARKET_X + R.choice([-200, 200]), y, 320.0, (255, 220, 170))
+        n += 1
+    for x in (-900, 600, 2000):
+        bulb(x, R.choice([-170, 170]), 270.0)
+        n += 1
+    # station tube lights under the canopy
+    plat_y = TRACK_Y[1] + 265
+    for x in range(int(PLATFORM_X[0]) + 300, int(PLATFORM_X[1]), 500):
+        bulb(x, plat_y + 230, 440.0, (215, 235, 255))
+        n += 1
+    log("night lights", n)
 
 
 def build_skyline(sc):
@@ -584,10 +707,7 @@ def build_gameplay(lanes, spots, props):
     traffic.set_editor_property("min_x", float(ROAD_X0))
     traffic.set_editor_property("max_x", float(ROAD_X1))
     traffic.set_editor_property("speed", 650.0)
-    fleet = [("AutoMumbai", 0.0), ("AutoMumbai", 0.0), ("AutoMumbai", 0.0), ("TaxiKaaliPeeli2", 0.0), ("TaxiKaaliPeeli2", 0.0),
-             ("TaxiKaaliPeeli2", 0.0), ("BusBEST", 180.0), ("ScooterActiva", 0.0), ("ScooterActiva", 0.0), ("BikePulsar135", 180.0),
-             ("CarWagonR", 180.0)]
-    fleet = [(mesh(n), y) for n, y in fleet if mesh(n)]
+    fleet = [(mesh(n), y) for n, y in FLEET if mesh(n)]
     traffic.set_editor_property("vehicle_meshes", [m for m, _ in fleet])
     traffic.set_editor_property("vehicle_mesh_yaws", [float(y) for _, y in fleet])
 
@@ -665,7 +785,12 @@ def build_gameplay(lanes, spots, props):
     for (name, x, y, z, yaw, sc_) in props:
         if name.startswith(("Drum_", "LPG_", "Bicycle", "Sack_", "Matka", "Veg_Cart", "VegCartModel", "StallModel", "Snack_",
                             "Plastic_", "Wooden_", "Electric_", "Chai_", "Dog", "Garbage_", "PH_island", "Pandal_", "Ganpati")):
-            cell.setdefault((int(x // 200), int(y // 200)), []).append((x, y, 150.0 if name.startswith(("Veg", "Stall", "Snack", "Pandal", "Chai")) else 90.0))
+            cell.setdefault((int(x // 200), int(y // 200)), []).append((x, y, 230.0 if name.startswith(("Veg", "Stall", "Snack", "Pandal", "Chai")) else 90.0))
+
+    # keep the crowd off the story characters' marks
+    for (sx, sy) in (LAKSHMI, CHHOTU, KAMLA, (CHAI.x - 300, CHAI.y - 170), (CHAI.x - 950, CHAI.y - 320), (CHAI.x - 820, CHAI.y - 440),
+                     (PANDAL_X - 550, CHAWL_Y), (PANDAL_X - 250, CHAWL_Y + 200), (PANDAL_X - 150, CHAWL_Y - 200)):
+        cell.setdefault((int(sx // 200), int(sy // 200)), []).append((sx, sy, 260.0))
 
     def blocked(x, y):
         for i in (-1, 0, 1):
@@ -687,6 +812,193 @@ def build_gameplay(lanes, spots, props):
     crowd.set_editor_property("spots", spot_structs)
     log("mumbai crowd lanes", len(lane_structs), "spots", len(spot_structs))
 
+
+
+# ------------------------------------------------------------------------------------------ the story
+import importlib.util as _ilu
+_spec = _ilu.spec_from_file_location("saraswati_lines", os.path.join(HERE, "..", "story", "saraswati_lines.py"))
+_lines = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(_lines)
+GESTURE = {"": unreal.GIPoseMode.TALK, "Talk": unreal.GIPoseMode.TALK, "Angry": unreal.GIPoseMode.ANGRY,
+           "Cheer": unreal.GIPoseMode.CHEER, "Throw": unreal.GIPoseMode.THROW, "Drink": unreal.GIPoseMode.DRINK,
+           "Locomotion": unreal.GIPoseMode.LOCOMOTION}
+MODE = {"idle": unreal.GIPoseMode.LOCOMOTION, "talk": unreal.GIPoseMode.TALK, "sit": unreal.GIPoseMode.SIT,
+        "cheer": unreal.GIPoseMode.CHEER, "angry": unreal.GIPoseMode.ANGRY}
+
+
+def story_lines(scene):
+    out = []
+    for i, (spk, lis, roman, _dev, gesture, shot) in enumerate(_lines.SCENES[scene]):
+        l = unreal.GIStoryLine()
+        l.set_editor_property("speaker", spk)
+        if lis:
+            l.set_editor_property("listener", lis)
+        l.set_editor_property("text", roman)
+        snd = load(f"{ROOT}/Audio/Story/S_Story_{scene}_{i:02d}")
+        if snd:
+            l.set_editor_property("voice", snd)
+        else:
+            warn("no voice", scene, i)
+        l.set_editor_property("gesture", GESTURE[gesture])
+        if shot:
+            l.set_editor_property("shot", shot)
+        out.append(l)
+    return out
+
+
+def cast(entries):
+    out = []
+    for e in entries:
+        who, x, y, z, yaw = e[:5]
+        mode = e[5] if len(e) > 5 else "idle"
+        visible = e[6] if len(e) > 6 else True
+        c = unreal.GIStoryCast()
+        c.set_editor_property("id", who)
+        c.set_editor_property("location", unreal.Vector(x, y, z))
+        c.set_editor_property("yaw", float(yaw))
+        c.set_editor_property("mode", MODE[mode])
+        c.set_editor_property("visible", visible)
+        out.append(c)
+    return out
+
+
+def beat(kind, objective="", npc="", loc=None, radius=300.0, path=None, speed=150.0, cast_=None, scene=None, hour=-1.0,
+         rain=-1, fade="", limit=0.0, banner="", reward=0, chapter="", chapter_sub="", retry=None):
+    b = unreal.GIStoryBeat()
+    b.set_editor_property("kind", kind)
+    b.set_editor_property("objective", objective)
+    if npc:
+        b.set_editor_property("npc", npc)
+    if loc:
+        b.set_editor_property("location", unreal.Vector(*loc))
+    b.set_editor_property("radius", float(radius))
+    if path:
+        b.set_editor_property("path", [unreal.Vector(*p) for p in path])
+    b.set_editor_property("path_speed", float(speed))
+    if cast_:
+        b.set_editor_property("cast", cast(cast_))
+    if scene:
+        b.set_editor_property("lines", story_lines(scene))
+    b.set_editor_property("hour", float(hour))
+    b.set_editor_property("rain", int(rain))
+    b.set_editor_property("fade_text", fade)
+    b.set_editor_property("time_limit", float(limit))
+    b.set_editor_property("done_banner", banner)
+    b.set_editor_property("reward", int(reward))
+    b.set_editor_property("chapter", chapter)
+    b.set_editor_property("chapter_sub", chapter_sub)
+    if retry:
+        b.set_editor_property("retry_location", unreal.Vector(*retry[:3]))
+        b.set_editor_property("retry_yaw", float(retry[3]))
+    return b
+
+
+def build_story():
+    """Saraswati Kahan Hai? - Shankar searches Dharavi for his wife, from dawn to the monsoon night."""
+    K = unreal.GIBeatKind
+    st = spawn(unreal.GIStory, unreal.Vector(0, 0, 0), label="Story_Saraswati")
+    actors = []
+    for aid, name, mesh_name, scale in (("lakshmi", "Lakshmi Tai", "SK_WomanMarathi", 1.0), ("chhotu", "Chhotu", "SK_KidOrange", 0.78),
+                                        ("kamla", "Kamla Mausi", "SK_WomanPinkSaree", 1.0), ("pappu", "Pappu Chai Wala", "SK_ManKurta", 1.0),
+                                        ("raghu", "Raghu", "SK_ManKurta2", 1.0), ("goon", "Bhau ka aadmi", "SK_ManShirt", 1.0),
+                                        ("bhau", "Bhau", "SK_ManPolo", 1.04), ("saraswati", "Saraswati", "SK_WomanSareeYellow", 1.0)):
+        d = unreal.GIStoryActorDef()
+        d.set_editor_property("id", aid)
+        d.set_editor_property("name", name)
+        m = load(f"/Game/Characters/{mesh_name}/{mesh_name}")
+        if not m:
+            warn("story mesh missing", mesh_name)
+        d.set_editor_property("mesh", m)
+        d.set_editor_property("scale", scale)
+        actors.append(d)
+    st.set_editor_property("actors", actors)
+
+    tapri_y = CHAI.y
+    pappu = (CHAI.x - 300, tapri_y - 170, 0, -90)
+    raghu_tapri = (CHAI.x - 950, tapri_y - 320, 0, 20)
+    goon_tapri = (CHAI.x - 820, tapri_y - 440, 0, 150)
+    plat_z = 90
+    st_x = (PLATFORM_X[0] + PLATFORM_X[1]) / 2
+    plat_y = TRACK_Y[1] + 265
+    follow = [(CHHOTU[0], CHHOTU[1] - 100, 0), (2950, 1300, 0), (2900, 2200, 0), (-2950, 2200, 0), (-3000, 2400, 0),
+              (-3000, 4400, 0), (-2800, 4400, 0), (4600, 4400, 0), (5300, 4400, 0), (MARKET_X, 4400, 0),
+              (MARKET_X, KAMLA[1] + 250, 0)]
+    tail = [(raghu_tapri[0], raghu_tapri[1], 0), (raghu_tapri[0] - 300, SHOP_N_EDGE - 150, 0), (GATE_X + 250, SHOP_N_EDGE - 150, 0),
+            (GATE_X, SHOP_N_EDGE + 200, 0), (GATE_X, CHAWL_S_EDGE - 200, 0), (GATE_X + 300, CHAWL_Y, 0), (PANDAL_X - 550, CHAWL_Y, 0)]
+
+    beats = [
+        # 0 - prologue: dawn in the blue lane
+        beat(K.SCENE, scene="prologue", hour=7.0, chapter="SARASWATI KAHAN HAI?", chapter_sub="Adhyay 1 - Neeli Gali",
+             cast_=[("player", -250, -20, 0, 0),
+                    ("lakshmi", LAKSHMI[0], LAKSHMI[1], 0, -90, "idle"),
+                    ("chhotu", CHHOTU[0], CHHOTU[1], 0, -90, "cheer"),
+                    ("kamla", KAMLA[0], KAMLA[1], 0, 0, "talk"),
+                    ("pappu", *pappu, "talk"),
+                    ("raghu", *raghu_tapri, "talk"), ("goon", *goon_tapri, "talk"),
+                    ("bhau", PANDAL_X - 250, CHAWL_Y + 200, 0, 180, "talk", False),
+                    ("saraswati", st_x - 500, plat_y + 350, plat_z, -90, "idle", False)]),
+        # 1 - Lakshmi Tai
+        beat(K.TALK_TO, "Neeli gali mein Lakshmi Tai ka ghar dhoondo aur unse baat karo.", npc="lakshmi", scene="lakshmi"),
+        # 2 - the kids' ball, then Chhotu
+        beat(K.RETURN_BALL, "Gali ke aage maidan mein bachche cricket khel rahe hain. Chhotu tabhi baat karega jab unki ball wapas milegi - ball aaye to phenko (E).",
+             npc="chhotu", loc=(3350, 0, 0), radius=500, scene="chhotu", reward=50, banner="Bachche khush! +\u20b950"),
+        # 3 - Chhotu's shortcut through the gallis
+        beat(K.FOLLOW, "Chhotu ke peeche chalo - woh galiyon se mandi ka shortcut jaanta hai.", npc="chhotu", path=follow, speed=330,
+             scene="chhotu_arrive", retry=(3000, 900, 0, 90)),
+        # 4 - Kamla Mausi at the sabzi mandi
+        beat(K.TALK_TO, "Kamla Mausi se Saraswati ke baare mein poochho.", npc="kamla", scene="kamla",
+             chapter="ADHYAY 2", chapter_sub="Sabzi Mandi"),
+        # 5 - Pappu's tapri on the main road
+        beat(K.CHAI, "Main road pe Pappu ki chai tapri pe jao. Ek cutting chai lo (E) - phir baaton baaton mein poochho.",
+             npc="pappu", loc=(CHAI.x, CHAI.y - 250, 0), radius=300, scene="pappu", hour=16.0, fade="Dopahar dhal gayi...",
+             chapter="ADHYAY 3", chapter_sub="Pappu ki Tapri",
+             cast_=[("pappu", *pappu, "talk"), ("raghu", *raghu_tapri, "talk"), ("goon", *goon_tapri, "talk"),
+                    ("chhotu", CHHOTU[0], CHHOTU[1], 0, -90, "cheer")]),
+        # 6 - tail Raghu to the pandal
+        beat(K.TAIL, "Raghu ka peecha karo. Na zyada paas jao, na nazar se door hone do.", npc="raghu", path=tail, speed=135,
+             retry=(CHAI.x - 900, tapri_y - 300, 0, 180),
+             cast_=[("bhau", PANDAL_X - 250, CHAWL_Y + 200, 0, 180, "talk"),
+                    ("raghu", *raghu_tapri, "idle")]),
+        # 7 - overheard at the pandal
+        beat(K.SCENE, npc="bhau", scene="pandal",
+             cast_=[("player", PANDAL_X - 2600, CHAWL_Y - 230, 0, 0),
+                    ("raghu", PANDAL_X - 550, CHAWL_Y, 0, 0, "idle"),
+                    ("bhau", PANDAL_X - 250, CHAWL_Y + 200, 0, 180, "idle"),
+                    ("goon", PANDAL_X - 150, CHAWL_Y - 200, 0, 160, "idle")]),
+        # 8 - race through the monsoon night to the station
+        beat(K.REACH, "Bhau ke aadmiyon se pehle station pahuncho! Chawl ke paar, rail line ke us taraf platform hai.",
+             loc=(st_x - 400, plat_y + 200, plat_z), radius=550, hour=21.2, rain=1, limit=150.0,
+             fade="Raat ke nau baj gaye...\nAur aasmaan phat pada.", chapter="ADHYAY 4", chapter_sub="Baarish ki Raat",
+             retry=(PANDAL_X - 2600, CHAWL_Y - 230, 0, 0),
+             cast_=[("player", PANDAL_X - 2600, CHAWL_Y - 230, 0, 0),
+                    ("bhau", 0, 0, 0, 0, "idle", False), ("raghu", 0, 0, 0, 0, "idle", False), ("goon", 0, 0, 0, 0, "idle", False),
+                    ("saraswati", st_x - 300, plat_y + 330, plat_z, -90, "idle", True)]),
+        # 9 - the platform
+        beat(K.FINALE, npc="saraswati", scene="finale", rain=0,
+             cast_=[("player", st_x - 620, plat_y + 210, plat_z, 0),
+                    ("saraswati", st_x - 400, plat_y + 260, plat_z, 180, "idle"),
+                    ("bhau", st_x + 650, plat_y + 230, plat_z, 180, "angry"),
+                    ("raghu", st_x + 820, plat_y + 80, plat_z, 180, "idle"),
+                    ("goon", st_x + 860, plat_y + 380, plat_z, 180, "idle"),
+                    ("lakshmi", st_x - 1450, plat_y + 260, plat_z, 0, "idle"),
+                    ("kamla", st_x - 1620, plat_y + 120, plat_z, 0, "idle"),
+                    ("pappu", st_x - 1620, plat_y + 400, plat_z, 0, "idle"),
+                    ("chhotu", st_x - 1280, plat_y + 90, plat_z, 0, "idle")]),
+    ]
+    st.set_editor_property("beats", beats)
+    st.set_editor_property("title", "Saraswati Kahan Hai?")
+    st.set_editor_property("player_name", "Shankar")
+    st.set_editor_property("start_hour", 7.0)
+    st.set_editor_property("minutes_per_second", 0.6)
+    st.set_editor_property("companion", "saraswati")
+    st.set_editor_property("end_title", "SARASWATI MIL GAYI")
+    st.set_editor_property("end_subtitle", "Mission Passed  -  Saraswati Kahan Hai?")
+    st.set_editor_property("free_roam_objective", "Mumbai aapki hai. Saraswati aapke saath hai - ghoomte raho.")
+    st.set_editor_property("credits", ["Shankar  -  aap", "Saraswati", "Lakshmi Tai", "Kamla Mausi", "Pappu Chai Wala", "Chhotu",
+                                        "Bhau aur Raghu", "", "Dharavi, Mumbai", "Ek GTA India kahani"])
+    st.set_editor_property("stinger_sound", load(f"{ROOT}/Audio/S_Stinger"))
+    st.set_editor_property("fail_sound", load(f"{ROOT}/Audio/S_MissionFail"))
+    log("story beats", len(beats))
 
 def place(sc, props):
     for (name, x, y, z, yaw, s) in props:
@@ -721,11 +1033,14 @@ def main():
     build_main_road(city, props, spots, lanes)
     build_rail(city, props, spots, lanes)
     build_boundary(city, props)
+    build_link_roads(city, props, spots, lanes)
     build_skyline(sky)
     for sc in (ground, houses, city, sky):
         sc.spawn()
     build_lighting_mumbai()
+    build_night_lights(lanes)
     build_gameplay(lanes, spots, props)
+    build_story()
     place(props_sc, props)
     props_sc.spawn()
     les.save_current_level()

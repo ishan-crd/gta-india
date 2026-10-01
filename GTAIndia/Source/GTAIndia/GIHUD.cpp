@@ -4,6 +4,8 @@
 #include "GIBike.h"
 #include "GIGameUserSettings.h"
 #include "GIMission.h"
+#include "GIStory.h"
+#include "GIDharavi.h"
 #include "GIPlayerCharacter.h"
 #include "CanvasItem.h"
 #include "Components/SceneCaptureComponent2D.h"
@@ -188,6 +190,10 @@ void AGIHUD::DrawHUD()
 		return;
 	}
 
+	if (DrawStory(S))
+	{
+		return;
+	}
 	const AGIPlayerCharacter* Player = GetPlayerCharacter();
 	DrawMissionBox(S);
 	if (Player)
@@ -223,11 +229,16 @@ void AGIHUD::DrawMissionBox(float S)
 	const FString Title = Mission->GetTitle().ToString();
 	const FString Obj = Mission->GetObjective().ToString();
 	const float TitleScale = 1.05f * S, ObjScale = 0.95f * S;
-	const float H = 92.f * S;
+	const TArray<FString> ObjLines = Wrap(Obj, SmallFont, ObjScale * 1.25f, W - 36.f * S);
+	const float LineH = TextSize(TEXT("Ag"), SmallFont, ObjScale * 1.25f).Y + 2.f * S;
+	const float H = (ObjLines.Num() > 0 ? 52.f * S + LineH * ObjLines.Num() : 46.f * S);
 	Rect(X, Y, W, H, PanelBg);
 	Rect(X, Y, 5.f * S, H, Gold);
 	Text(Title, X + 18.f * S, Y + 10.f * S, MedFont, TitleScale, Gold);
-	Text(Obj, X + 18.f * S, Y + 44.f * S, SmallFont, ObjScale * 1.25f, FLinearColor::White);
+	for (int32 i = 0; i < ObjLines.Num(); ++i)
+	{
+		Text(ObjLines[i], X + 18.f * S, Y + 44.f * S + LineH * i, SmallFont, ObjScale * 1.25f, FLinearColor::White);
+	}
 
 	const float TimeLeft = Mission->GetTimeLeft();
 	if (TimeLeft >= 0.f)
@@ -248,7 +259,14 @@ void AGIHUD::DrawStats(const AGIPlayerCharacter* Player, float S)
 
 	// Clock (GTA style): the day starts at 09:30 and runs one game minute every 4 seconds.
 	{
-		const int32 Minutes = 9 * 60 + 30 + FMath::FloorToInt(GetWorld()->GetTimeSeconds() / 4.f);
+		int32 Minutes = 9 * 60 + 30 + FMath::FloorToInt(GetWorld()->GetTimeSeconds() / 4.f);
+		if (const AGIWeather* Weather = AGIWeather::Get(this))
+		{
+			if (Weather->GetHour() >= 0.f)
+			{
+				Minutes = FMath::FloorToInt(Weather->GetHour() * 60.f);
+			}
+		}
 		const FString Clock = FString::Printf(TEXT("%02d:%02d"), (Minutes / 60) % 24, Minutes % 60);
 		const FVector2D CS = TextSize(Clock, BigFont, 1.0f * S);
 		Text(Clock, X + W - CS.X, Y - 4.f * S, BigFont, 1.0f * S, FLinearColor::White);
@@ -511,4 +529,145 @@ void AGIHUD::DrawFPS(float S)
 {
 	const FString Str = FString::Printf(TEXT("%d FPS"), FMath::RoundToInt(SmoothedFPS));
 	Text(Str, Canvas->ClipX * 0.5f, 8.f * S, SmallFont, 1.0f * S, FLinearColor(0.7f, 1.f, 0.7f), true);
+}
+
+TArray<FString> AGIHUD::Wrap(const FString& Str, UFont* Font, float Scale, float MaxW)
+{
+	TArray<FString> Out;
+	TArray<FString> Paragraphs;
+	Str.ParseIntoArray(Paragraphs, TEXT("\n"), false);
+	for (const FString& Para : Paragraphs)
+	{
+		TArray<FString> Words;
+		Para.ParseIntoArrayWS(Words);
+		FString Line;
+		for (const FString& W : Words)
+		{
+			const FString Try = Line.IsEmpty() ? W : Line + TEXT(" ") + W;
+			if (!Line.IsEmpty() && TextSize(Try, Font, Scale).X > MaxW)
+			{
+				Out.Add(Line);
+				Line = W;
+			}
+			else
+			{
+				Line = Try;
+			}
+		}
+		if (!Line.IsEmpty())
+		{
+			Out.Add(Line);
+		}
+	}
+	return Out;
+}
+
+bool AGIHUD::DrawStory(float S)
+{
+	const AGIStory* Story = AGIStory::Get(this);
+	if (!Story || !Story->HasStarted())
+	{
+		return false;
+	}
+	const float CW = Canvas->ClipX, CH = Canvas->ClipY;
+	const bool bCine = Story->IsCinematic();
+
+	// letterbox
+	const float LB = FMath::InterpEaseInOut(0.f, 1.f, Story->GetLetterbox(), 2.f);
+	if (LB > 0.001f)
+	{
+		const float BarH = CH * 0.115f * LB;
+		Rect(0.f, 0.f, CW, BarH, FLinearColor::Black);
+		Rect(0.f, CH - BarH, CW, BarH, FLinearColor::Black);
+	}
+
+	// subtitles
+	FString Name, Line;
+	FLinearColor NameColor;
+	if (Story->GetSubtitle(Name, Line, NameColor))
+	{
+		const float Sc = 1.45f * S;
+		const TArray<FString> Lines = Wrap(Line, MedFont, Sc, CW * 0.7f);
+		const float LH = TextSize(TEXT("Ag"), MedFont, Sc).Y + 2.f * S;
+		const float Top = CH - CH * 0.115f * FMath::Max(LB, 0.6f);
+		float Y = FMath::Min(Top + 8.f * S, CH - LH * (Lines.Num() + 1) - 10.f * S);
+		const FString Speaker = Name + TEXT(":");
+		Text(Speaker, CW * 0.5f, Y, MedFont, Sc * 0.85f, NameColor, true);
+		Y += LH * 0.92f;
+		for (const FString& L : Lines)
+		{
+			Text(L, CW * 0.5f, Y, MedFont, Sc, FLinearColor::White, true);
+			Y += LH;
+		}
+		Text(TEXT("[E] aage"), CW - 40.f * S, CH - 40.f * S, SmallFont, 0.95f * S, FLinearColor(1.f, 1.f, 1.f, 0.45f), true, false);
+	}
+
+	// chapter card (bottom left, GTA style)
+	FString CT, CSub;
+	float CA = 0.f;
+	if (Story->GetChapterCard(CT, CSub, CA))
+	{
+		const float Y = CH * 0.62f;
+		const float Sc = 2.1f * S;
+		const FVector2D TS = TextSize(CT, BigFont, Sc);
+		Rect(60.f * S, Y - 10.f * S, TS.X + 50.f * S, 6.f * S, FLinearColor(1.f, 0.78f, 0.12f, CA));
+		Text(CT, 80.f * S, Y + 6.f * S, BigFont, Sc, FLinearColor(1.f, 1.f, 1.f, CA));
+		if (!CSub.IsEmpty())
+		{
+			Text(CSub, 82.f * S, Y + TS.Y + 14.f * S, MedFont, 1.15f * S, FLinearColor(1.f, 0.85f, 0.4f, CA));
+		}
+	}
+
+	// tail warnings
+	const FString Warn = Story->GetWarning();
+	if (!Warn.IsEmpty() && !bCine)
+	{
+		const float Pulse = 0.65f + 0.35f * FMath::Sin(GetWorld()->GetTimeSeconds() * 7.f);
+		Text(Warn, CW * 0.5f, CH * 0.2f, MedFont, 1.2f * S, FLinearColor(1.f, 0.45f, 0.2f, Pulse), true);
+	}
+
+	// end card and credits
+	FString ET, ES;
+	TArray<FString> Credits;
+	float EA = 0.f, Scroll = 0.f;
+	if (Story->GetEndCard(ET, ES, Credits, EA, Scroll))
+	{
+		Rect(0.f, 0.f, CW, CH, FLinearColor(0.f, 0.f, 0.f, 0.55f * EA));
+		const float Sc = 3.0f * S;
+		Text(ET, CW * 0.5f, CH * 0.3f, BigFont, Sc, FLinearColor(1.f, 0.78f, 0.12f, EA), true);
+		Text(ES, CW * 0.5f, CH * 0.3f + TextSize(ET, BigFont, Sc).Y + 10.f * S, MedFont, 1.3f * S, FLinearColor(1.f, 1.f, 1.f, EA), true);
+		float Y = CH * 1.05f - Scroll * (CH * 0.6f + Credits.Num() * 34.f * S);
+		for (const FString& C : Credits)
+		{
+			if (Y > CH * 0.5f && Y < CH * 0.9f)
+			{
+				Text(C, CW * 0.5f, Y, MedFont, 0.95f * S, FLinearColor(0.9f, 0.9f, 0.9f, EA), true);
+			}
+			Y += 34.f * S;
+		}
+	}
+
+	// fade through black (time skips, retries)
+	FString FadeText;
+	const float F = Story->GetFade(FadeText);
+	if (F > 0.001f)
+	{
+		Rect(0.f, 0.f, CW, CH, FLinearColor(0.f, 0.f, 0.f, F));
+		if (!FadeText.IsEmpty())
+		{
+			TArray<FString> Lines;
+			FadeText.ParseIntoArray(Lines, TEXT("\n"));
+			float Y = CH * 0.44f;
+			for (int32 i = 0; i < Lines.Num(); ++i)
+			{
+				const bool bFail = Lines[i].StartsWith(TEXT("MISSION FAILED"));
+				const float Sc = (i == 0 ? 1.8f : 1.1f) * S;
+				Text(Lines[i], CW * 0.5f, Y, i == 0 ? BigFont : MedFont, Sc,
+					bFail ? FLinearColor(0.9f, 0.15f, 0.1f, F) : FLinearColor(1.f, 1.f, 1.f, F), true);
+				Y += TextSize(Lines[i], i == 0 ? BigFont : MedFont, Sc).Y + 10.f * S;
+			}
+		}
+		return true;
+	}
+	return bCine;
 }

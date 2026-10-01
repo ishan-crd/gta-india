@@ -80,6 +80,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cricket") float LaneHalfWidth = 380.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cricket") int32 NumFielders = 5;
 
+	bool GetWaitingBall(FVector& Out) const;
 	bool WantsBallFromPlayer(const AGIPlayerCharacter* Player) const;
 	void PlayerReturnsBall(AGIPlayerCharacter* Player);
 
@@ -150,6 +151,11 @@ public:
 	void SetRaining(bool bRain);
 	void SetRainingInstant(bool bRain) { bWantRain = bRain; Rain = bRain ? 1.f : 0.f; Apply(); }
 	bool IsRaining() const { return bWantRain; }
+	/** Time of day (0..24) drives the sun, sky, moon, fog and lamps; < 0 leaves the level's lighting alone. */
+	void SetHour(float InHour);
+	float GetHour() const { return Hour; }
+	/** 0 by day, 1 at night. */
+	float GetNight() const { return Night; }
 	float GetRainAmount() const { return Rain; }
 	UStaticMesh* PickUmbrella(int32 Seed) const;
 
@@ -167,6 +173,11 @@ private:
 	TWeakObjectPtr<ASkyLight> Sky;
 	TWeakObjectPtr<AExponentialHeightFog> Fog;
 	TArray<TWeakObjectPtr<AActor>> StreetLights;
+	TArray<TWeakObjectPtr<AActor>> NightLights;
+	TWeakObjectPtr<ADirectionalLight> Moon;
+	FRotator SunBaseRotation = FRotator::ZeroRotator;
+	float Hour = -1.f;
+	float Night = 0.f;
 	float SunIntensity = 9.f, SkyIntensity = 1.f, FogDensity = 0.03f, SunTemp = 4600.f;
 	FLinearColor FogInscatter = FLinearColor::White;
 	bool bWantRain = false;
