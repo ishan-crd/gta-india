@@ -318,8 +318,9 @@ void AGITrain::CheckPlayerHit(float DeltaSeconds)
 		return;
 	}
 	const FVector P = Player->GetActorLocation();
-	for (const UStaticMeshComponent* Car : Cars)
+	for (int32 i = 0; i < Cars.Num(); ++i)
 	{
+		const UStaticMeshComponent* Car = Cars[i];
 		if (!Car)
 		{
 			continue;
@@ -330,6 +331,15 @@ void AGITrain::CheckPlayerHit(float DeltaSeconds)
 			continue;
 		}
 		const float Side = P.Y >= Box.GetCenter().Y ? 1.f : -1.f;
+		const float FrontX = Speed >= 0.f ? Box.Max.X : Box.Min.X;
+		const bool bNose = i == 0 && FMath::Abs(P.X - FrontX) < 260.f;
+		if (!bNose)
+		{
+			// Brushing the side of a coach (e.g. walking up to climb on): just nudge clear, no damage.
+			Player->LaunchCharacter(FVector(Speed * 0.25f, Side * 260.f, 0.f), false, false);
+			HitCooldown = 0.4f;
+			break;
+		}
 		Player->LaunchCharacter(FVector(Speed * 0.5f, Side * 1400.f, 520.f), true, true);
 		if (AGIPlayerCharacter* GI = Cast<AGIPlayerCharacter>(Player))
 		{

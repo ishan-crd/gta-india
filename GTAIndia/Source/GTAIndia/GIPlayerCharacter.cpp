@@ -5,6 +5,8 @@
 #include "GIGameUserSettings.h"
 #include "GIRiver.h"
 #include "GITrain.h"
+#include "GITraffic.h"
+#include "Engine/StaticMesh.h"
 #include "GTAIndia.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -407,8 +409,9 @@ void AGIPlayerCharacter::UpdateAnimation(float DeltaSeconds)
 	{
 		if (UGIAnimInstance::HasSwimClip())
 		{
-			// The clip already lies prone around standing hip height: just lift the body to the surface.
-			const FVector Loc = MeshBaseLocation + FVector(0.f, 0.f, 72.f * SwimBlend);
+			// The clip lies prone around standing hip height: lift it only so far that the back is at the
+			// waterline (head, shoulders and the food box above, body in the water - like the clip).
+			const FVector Loc = MeshBaseLocation + FVector(0.f, 0.f, 38.f * SwimBlend);
 			GetMesh()->SetRelativeLocationAndRotation(Loc, MeshBaseRotation);
 		}
 		else
@@ -444,7 +447,7 @@ AGITrain* AGIPlayerCharacter::FindNearbyTrain(FVector& OutRoofPoint) const
 {
 	for (TActorIterator<AGITrain> It(GetWorld()); It; ++It)
 	{
-		if (It->GetRoofPointNear(GetActorLocation(), 650.f, OutRoofPoint))
+		if (It->GetRoofPointNear(GetActorLocation(), 950.f, OutRoofPoint))
 		{
 			return *It;
 		}
@@ -457,7 +460,7 @@ void AGIPlayerCharacter::UpdateInteraction()
 	Prompt = FText::GetEmpty();
 	if (IsRiding())
 	{
-		Prompt = LOCTEXT("PromptExitBike", "[F / Y] Bike se utro");
+		Prompt = LOCTEXT("PromptExitBike", "[F / Y] Gaadi se utro");
 		return;
 	}
 	if (IsSwimming())
@@ -466,8 +469,16 @@ void AGIPlayerCharacter::UpdateInteraction()
 	}
 	if (FindNearbyBike(380.f))
 	{
-		Prompt = LOCTEXT("PromptBike", "[F / Y] Bike chalao");
+		Prompt = LOCTEXT("PromptBike", "[F / Y] Gaadi chalao");
 		return;
+	}
+	for (TActorIterator<AGITraffic> It(GetWorld()); It; ++It)
+	{
+		if (It->HasVehicleNear(GetActorLocation(), 420.f))
+		{
+			Prompt = LOCTEXT("PromptTakeVehicle", "[F / Y] Gaadi le lo");
+			return;
+		}
 	}
 	FVector Roof;
 	if (AGITrain* Train = FindNearbyTrain(Roof))
@@ -481,11 +492,11 @@ void AGIPlayerCharacter::UpdateInteraction()
 	const int32 Ferry = FerryDirection();
 	if (Ferry > 0)
 	{
-		Prompt = LOCTEXT("PromptFerryEast", "[E / X] Naav se Ramnagar Ghat (\u20B920)");
+		Prompt = LOCTEXT("PromptFerryEast", "[E / X] Naav se Dashashwamedh Ghat (\u20B920)");
 	}
 	else if (Ferry < 0)
 	{
-		Prompt = LOCTEXT("PromptFerryWest", "[E / X] Naav se wapas Dashashwamedh (\u20B920)");
+		Prompt = LOCTEXT("PromptFerryWest", "[E / X] Naav se wapas gaon ke ghat (\u20B920)");
 	}
 }
 
@@ -610,6 +621,30 @@ void AGIPlayerCharacter::InputVehicle()
 	if (AGIBike* Bike = FindNearbyBike(380.f))
 	{
 		Bike->Mount(this);
+		return;
+	}
+	// Flag down / take over a passing auto, car or bike: its people get off and you drive.
+	for (TActorIterator<AGITraffic> It(GetWorld()); It; ++It)
+	{
+		FTransform Xf;
+		UStaticMesh* Mesh = nullptr;
+		float MeshYaw = 0.f;
+		bool bFour = false;
+		if (It->TakeVehicle(GetActorLocation(), 420.f, Xf, Mesh, MeshYaw, bFour))
+		{
+			Xf.AddToTranslation(FVector(0.f, 0.f, 80.f));
+			AGIBike* V = GetWorld()->SpawnActorDeferred<AGIBike>(AGIBike::StaticClass(), Xf, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+			if (V)
+			{
+				V->MeshOverride = Mesh;
+				V->MeshYawOverride = MeshYaw;
+				V->bFourWheeler = bFour;
+				V->FinishSpawning(Xf);
+				V->Mount(this);
+				OnPopup.Broadcast(LOCTEXT("TookVehicle", "\"Arre! Meri gaadi!\""));
+			}
+			return;
+		}
 	}
 }
 
