@@ -1,0 +1,6 @@
+f1_swim player -1000 -5000 60 -90 -6
+f2_traffic cam -14000 6500 1380 -4 25
+f3_ghat_top player -2500 4800 1300 -90 -10
+f4_ride ride
+f5_train train
+f6_traffic_back cam -6000 8150 1420 -6 -155

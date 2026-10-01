@@ -1,0 +1,2 @@
+s1_swim player -1000 -7000 60 -90 -6
+s2_swim_side player 500 -9000 60 180 -8
