@@ -82,8 +82,8 @@ FText AGIMission::GetObjective() const
 	switch (Stage)
 	{
 	case EGIMissionStage::ToPickup: return LOCTEXT("ObjPickup", "Sharma Bhojnalaya se order uthao.");
-	case EGIMissionStage::ToGhat: return LOCTEXT("ObjGhat", "Dashashwamedh Ghat pahuncho. Bike ya train, jaise marzi!");
-	case EGIMissionStage::CrossRiver: return LOCTEXT("ObjCross", "Ganga paar karke Ramnagar Ghat pe order do.");
+	case EGIMissionStage::ToGhat: return LOCTEXT("ObjGhat", "Train ke saath ghat tak pahuncho. Bike ya train ki chhat, jaise marzi!");
+	case EGIMissionStage::CrossRiver: return LOCTEXT("ObjCross", "Ganga paar karo, order Dashashwamedh Ghat pe do.");
 	case EGIMissionStage::Delivered: return LOCTEXT("ObjDone", "Order deliver ho gaya! Naya order Sharma Bhojnalaya pe...");
 	}
 	return FText::GetEmpty();
@@ -161,7 +161,7 @@ void AGIMission::Tick(float DeltaSeconds)
 			TimeLeft = TimeLimit;
 			bTimerRunning = true;
 			bAnnouncedFarBank = false;
-			ShowBanner(LOCTEXT("GotOrder", "Order mila! Ramnagar Ghat - jaldi!"));
+			ShowBanner(LOCTEXT("GotOrder", "Order mila! Ganga ke us paar - jaldi!"));
 			Player->RespawnTransform = Player->GetActorTransform();
 			if (!Player->IsRiding())
 			{
@@ -173,7 +173,7 @@ void AGIMission::Tick(float DeltaSeconds)
 	case EGIMissionStage::ToGhat:
 		if (FVector::Dist2D(P, GhatLocation) < 900.f || Player->IsSwimming())
 		{
-			ShowBanner(LOCTEXT("AtGhat", "Dashashwamedh Ghat! Ab Ganga paar karo."), 3.5f);
+			ShowBanner(LOCTEXT("AtGhat", "Ghat aa gaya! Ab Ganga paar karo."), 3.5f);
 			if (!Player->IsSwimming())
 			{
 				Player->RespawnTransform = Player->GetActorTransform();
