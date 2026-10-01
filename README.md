@@ -12,13 +12,16 @@ low village houses | fields. Driving along +X the village is on your left, train
 
 ### Mumbai: Dharavi ki Galiyan
 
-The second city (pick it on the title screen, or "Shehar badlo" in the pause menu). Dharavi in the
-morning sun: a concrete gateway off the busy main road into narrow gallis of sky-blue shanties with
-laundry overhead, rusty corrugated alleys, 3-4 storey chawls, a pottery / recycling corner. Kids play
-gully cricket (return their ball when it rolls to you), the chai-wallah pours a cutting chai (E, Rs 10,
-+10 HP), autos and scooters fill the road, and on the main road the monsoon breaks: rain, mirror-wet
-streets, neon signs, umbrellas (toggle the weather from the pause menu).
-Built by `tools/ue/05b_build_dharavi.py` from the Dharavi kit (`tools/blender/kit_dharavi.py`).
+The second city (pick it on the title screen, or "Shehar badlo" in the pause menu). You start as the man
+in the dhoti in a narrow galli of vivid blue row houses with laundry overhead, which opens into a square
+where kids play gully cricket (return their ball when it rolls to you). Around it: a grid of 3 m gallis of
+shanties and tin shacks, a chawl street of 3-4 storey tenements with a Ganesh pandal and a second cricket
+game, a sabzi mandi under blue tarps, the main road (shop-houses, neon, a chai tapri, zebra crossings, BEST
+buses, kaali-peeli taxis, autos and scooters keeping left), the railway with Mumbai locals packed to the
+doors and a small station platform, and high-rises on the horizon. On the main road the monsoon breaks:
+rain, mirror-wet streets, umbrellas (toggle the weather from the pause menu).
+Built by `tools/ue/05b_build_mumbai.py` from the Dharavi, Trial-lane and Mumbai kits
+(`tools/blender/kit_dharavi.py`, `kit_trial.py`, `kit_mumbai.py`).
 
 ## Layout
 
@@ -53,7 +56,7 @@ tools/pc/ue_python.sh tools/ue/10_variety.py             # outfit colours, saree
 tools/pc/ue_python.sh tools/ue/15_reimport_player.py     # only after rebuilding SK_Player in Blender
 python3 tools/ue/make_dharavi_textures.py                # rain streaks + neon sign textures (system python)
 tools/pc/ue_python.sh tools/ue/17_dharavi_materials.py   # weather MPC, wet streets, rain + neon materials
-tools/pc/ue_python_editor.sh tools/ue/05b_build_dharavi.py  # the Mumbai map
+tools/pc/ue_python_editor.sh tools/ue/05b_build_mumbai.py   # the Mumbai map
 tools/pc/package.sh                             # Shipping build -> ~/gta-india/build
 ```
 

@@ -62,6 +62,7 @@ void AGITraffic::BeginPlay()
 			const FVector Size = Mesh->GetBoundingBox().GetSize();
 			const bool bBike = Size.Y < 110.f;
 			V.bFourWheeler = !bBike;
+			V.HalfLen = FMath::Max(Size.X, Size.Y) * 0.5f;
 			V.MeshYaw = VehicleMeshYaws.IsValidIndex(MeshIdx) ? VehicleMeshYaws[MeshIdx] : 0.f;
 			V.MaxSpeed = Speed * Rand.FRandRange(0.65f, 1.25f) * (bBike ? 1.15f : 1.f);
 			V.Speed = V.MaxSpeed;
@@ -123,7 +124,23 @@ void AGITraffic::AddRiders(FVehicle& V, FRandomStream& Rand)
 			AddRider(V, Rand, FVector(-76.f, 0.f, 96.f), false);
 		}
 	}
-	else if (Size.Z > 140.f && Size.X > 280.f && Size.Y > 140.f)
+	else if (Size.X >= 600.f)
+	{
+		// Bus: driver up front on the right, passengers along the windows.
+		const float Half = Size.X * 0.5f;
+		AddRider(V, Rand, FVector(Half - 140.f, 70.f, 105.f), true);
+		for (float X = Half - 320.f; X > -Half + 150.f; X -= 110.f)
+		{
+			for (const float Y : { -80.f, 80.f })
+			{
+				if (Rand.FRand() < 0.55f)
+				{
+					AddRider(V, Rand, FVector(X, Y, 100.f), false);
+				}
+			}
+		}
+	}
+	else if (Size.X > 300.f && Size.Y > 140.f)
 	{
 		// Car: right-hand drive, sometimes a passenger.
 		AddRider(V, Rand, FVector(8.f, 34.f, 62.f), true);
@@ -262,7 +279,8 @@ void AGITraffic::Tick(float DeltaSeconds)
 			const float D = (O.X - V.X) * Dir;
 			if (D > 0.f)
 			{
-				Gap = FMath::Min(Gap, D);
+				// bumper to bumper
+				Gap = FMath::Min(Gap, D - O.HalfLen - V.HalfLen);
 			}
 		}
 		if (FMath::Abs(P.Y - L.Y) < 260.f && FMath::Abs(P.Z - L.Z) < 400.f)
@@ -270,13 +288,13 @@ void AGITraffic::Tick(float DeltaSeconds)
 			const float D = (P.X - V.X) * Dir;
 			if (D > 0.f)
 			{
-				Gap = FMath::Min(Gap, D);
+				Gap = FMath::Min(Gap, D - V.HalfLen - 40.f);
 			}
 		}
-		const float Want = Gap < 450.f ? 0.f : (Gap < 1500.f ? V.MaxSpeed * (Gap - 450.f) / 1050.f : V.MaxSpeed);
+		const float Want = Gap < 180.f ? 0.f : (Gap < 1200.f ? V.MaxSpeed * (Gap - 180.f) / 1020.f : V.MaxSpeed);
 		V.Speed = FMath::FInterpTo(V.Speed, Want, DeltaSeconds, Want < V.Speed ? 4.f : 1.2f);
 		// Never close in past a minimum bumper gap, whatever the braking curve did this frame.
-		const float Step = FMath::Min(V.Speed * DeltaSeconds, FMath::Max(0.f, Gap - 380.f));
+		const float Step = FMath::Min(V.Speed * DeltaSeconds, FMath::Max(0.f, Gap - 110.f));
 		if (Step < V.Speed * DeltaSeconds)
 		{
 			V.Speed = Step / FMath::Max(DeltaSeconds, 1e-3f);

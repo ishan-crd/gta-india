@@ -31,6 +31,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Train") float CrowdShare = 0.85f;
 	/** Door centres along each car, cm from the car centre (EMU: three doors per side). */
 	UPROPERTY(EditAnywhere, Category = "Train") TArray<float> DoorOffsets = { -700.f, 0.f, 700.f };
+	/** Mumbai local: riders only hang out of / stand in the doors, nobody on the roof. */
+	UPROPERTY(EditAnywhere, Category = "Train") bool bDoorRidersOnly = false;
 
 	/** Closest point on a car roof within MaxDist (XY) of Location. */
 	bool GetRoofPointNear(const FVector& Location, float MaxDist, FVector& OutPoint) const;

@@ -147,7 +147,7 @@ void AGIPlayerController::LoadShots()
 		}
 		else if (S.Kind == TEXT("city"))
 		{
-			S.Program = T.IsValidIndex(2) ? T[2] : TEXT("Dharavi");
+			S.Program = T.IsValidIndex(2) ? T[2] : TEXT("Mumbai");
 		}
 		else if (S.Kind == TEXT("player") || S.Kind == TEXT("climb") || S.Kind == TEXT("dive"))
 		{
@@ -726,7 +726,7 @@ void AGIPlayerController::StartGame()
 
 bool AGIPlayerController::IsMumbai() const
 {
-	return GetWorld() && GetWorld()->GetMapName().Contains(TEXT("Dharavi"));
+	return GetWorld() && GetWorld()->GetMapName().Contains(TEXT("Mumbai"));
 }
 
 void AGIPlayerController::StartCity(FName MapName)

@@ -60,6 +60,7 @@ private:
 		float MaxSpeed = 0.f;
 		float Wobble = 0.f;
 		float MeshYaw = 0.f;
+		float HalfLen = 150.f;
 		bool bFourWheeler = false;
 		TArray<USkeletalMeshComponent*> Riders;
 		TArray<FVector> RiderOffsets;      // in the travel frame (X forward), from the ground under the vehicle

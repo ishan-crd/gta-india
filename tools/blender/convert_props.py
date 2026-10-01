@@ -58,7 +58,14 @@ PROPS = {
     "ACOutdoorUnit": ("sketchfab/ac_unit/scene.gltf", 0.6, "height", False, 0),
     "ElecMeter": ("sketchfab/elec_meter/scene.gltf", 0.3, "height", False, 0),
     "ElecMeterBank": ("sketchfab/meter_bank/scene.gltf", 1.6, "long", True, 0),
+    # --- Mumbai main road ---
+    "BusBEST": ("sketchfab/bus_best/scene.gltf", 11.5, "long", False, "auto"),
+    "TaxiKaaliPeeli2": ("sketchfab/taxi_kp2/scene.gltf", 3.75, "long", True, 0),
+    "Ganpati": ("sketchfab/ganesh2/scene.gltf", 1.9, "height", False, 0),
 }
+
+# Fixed real widths (m) for models whose proportions are off (applied as a Y squash after scaling).
+WIDTH_M = {"BusBEST": 2.6}
 
 # Poly Haven models are already real-world scale (metres) and Z-up after glTF import.
 PH = f"{SRC}/polyhaven/models"
@@ -148,7 +155,17 @@ def convert(name, src, size_m, axis, align, yaw, out_dir):
     if align and size.y > size.x:
         obj.rotation_euler = (0, 0, math.radians(90))
         bpy.ops.object.transform_apply(rotation=True)
-    if yaw:
+    if yaw == "auto":
+        # model sits diagonally: rotate its principal horizontal axis (vertex covariance) onto X
+        xs = [obj.matrix_world @ v.co for v in obj.data.vertices]
+        mx = sum(v.x for v in xs) / len(xs)
+        my = sum(v.y for v in xs) / len(xs)
+        sxx = sum((v.x - mx) ** 2 for v in xs)
+        syy = sum((v.y - my) ** 2 for v in xs)
+        sxy = sum((v.x - mx) * (v.y - my) for v in xs)
+        obj.rotation_euler = (0, 0, -0.5 * math.atan2(2 * sxy, sxx - syy))
+        bpy.ops.object.transform_apply(rotation=True)
+    elif yaw:
         obj.rotation_euler = (0, 0, math.radians(yaw))
         bpy.ops.object.transform_apply(rotation=True)
     lo, hi = world_bounds([obj])
@@ -157,6 +174,10 @@ def convert(name, src, size_m, axis, align, yaw, out_dir):
     s = size_m / max(ref, 1e-6)
     obj.scale = (s, s, s)
     bpy.ops.object.transform_apply(scale=True)
+    if name in WIDTH_M:
+        lo, hi = world_bounds([obj])
+        obj.scale = (1, WIDTH_M[name] / max(hi.y - lo.y, 1e-6), 1)
+        bpy.ops.object.transform_apply(scale=True)
     lo, hi = world_bounds([obj])
     centre = (lo + hi) * 0.5
     obj.location = (-centre.x, -centre.y, -lo.z)

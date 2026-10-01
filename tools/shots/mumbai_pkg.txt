@@ -1,5 +1,4 @@
-t0_go city Trial
+t0_go city Mumbai
 t1_lane_start player 150 -20 100 0 -5
 t2_lane_mid player 1300 -10 100 0 -5
 t3_square player 2500 0 100 15 -5
-t4_lane_back player 2300 0 100 180 -5

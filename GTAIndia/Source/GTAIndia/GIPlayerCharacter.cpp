@@ -127,7 +127,7 @@ void AGIPlayerCharacter::SetupLook()
 		// the box follows the spine without depending on the bone's axis convention.
 		DeliveryBox->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, S.DeliveryBoxBone);
 		// No delivery in Dharavi: the walk-around has no bag on his back (like the clip).
-		if (GetWorld() && (GetWorld()->GetMapName().Contains(TEXT("Dharavi")) || (Profile && Profile->bHideBag)))
+		if (GetWorld() && (GetWorld()->GetMapName().Contains(TEXT("Mumbai")) || (Profile && Profile->bHideBag)))
 		{
 			bNoBox = true;
 			DeliveryBox->SetVisibility(false);

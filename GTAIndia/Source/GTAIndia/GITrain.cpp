@@ -171,7 +171,7 @@ void AGITrain::BuildRiders()
 			EGIPoseMode Mode = EGIPoseMode::Sit;
 			FVector Pos;
 			float Yaw;
-			const float Roll = Rand.FRand();
+			const float Roll = bDoorRidersOnly ? Rand.FRandRange(0.72f, 1.f) : Rand.FRand();
 			const float XAlong = Rand.FRandRange(-HalfLen, HalfLen);
 			const float DoorX = DoorOffsets.Num() > 0 ? DoorOffsets[Rand.RandRange(0, DoorOffsets.Num() - 1)] : CarBox.GetExtent().X - 90.f;
 			if (Roll < 0.3f)

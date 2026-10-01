@@ -1,0 +1,12 @@
+m01_lane_start player 150 -20 100 0 -5
+m02_overview cam -2000 -12000 4500 -28 75
+m03_overview2 cam 2000 2000 6000 -55 0
+m04_galli player -5000 2200 100 0 -5
+m05_chawl player -3000 7120 100 0 -5
+m06_pandal cam 600 6900 300 -5 15
+m07_market player 6000 -4000 100 90 -5
+m08_mainroad player 3500 -7200 100 0 -5
+m09_mainroad_cam cam 5000 -6900 450 -10 200
+m10_rail cam -1000 9000 400 -6 30
+m11_station player 0 10600 190 -90 -5
+m12_square cam 2700 -300 350 -10 30

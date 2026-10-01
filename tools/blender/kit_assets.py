@@ -977,4 +977,6 @@ def registry():
     kit_dharavi.register(add)
     import kit_trial
     kit_trial.register(add)
+    import kit_mumbai
+    kit_mumbai.register(add)
     return R
