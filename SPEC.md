@@ -14,24 +14,26 @@ health bar + ₹ money top-right, circular minimap bottom-left.
 UE: centimetres, Z up. Blender kit is authored in METRES, Z up, +X forward, exported to FBX so that
 1 Blender m = 100 UE cm. Mesh origins at bottom-centre unless noted in the kit manifest.
 
-## World layout (UE cm)
-- River Ganga flows along X. Water surface Z = 0. River spans Y = -15000 .. 0 (150 m wide), bed Z = -600.
-- WEST BANK (city, Y > 0), X = -40000 .. 40000:
-  - Ghat steps Y = 0 .. 4000 rising from Z = -300 (underwater) to Z = +1200. Steps ~30 cm rise, ~60 cm
-    tread, landings every ~10 steps. Named ghats: Dashashwamedh (X=0), Manikarnika (X=-25000),
-    Assi (X=+30000). Chhatri umbrellas, small shrines, boats tied at the water line.
-  - Riverfront buildings Y = 4000 .. 9000 on top of the ghats (Z = 1200): 3–7 storey palaces, houses,
-    temples; narrow stair-gullies between them down to the ghats.
-  - Railway embankment along X at Y = 10500, rail top at Z = 1500. Dusty road at Y = 12500, Z = 1200.
-  - Town blocks Y = 14000 .. 30000 with lanes.
-- EAST BANK (Y < -15000): wide sand bank Z ~ 0..150, Ramnagar-style fort ghat around X = 0
-  (steps Y = -15000 .. -19000 rising to Z = 1000, sandstone fort wall behind). Delivery drop-off there.
+## World layout (UE cm) — matches the clip's cross-section
+- River Ganga flows along X. Water surface Z = 0. Water from Y = -15000 to 0 (150 m), bed Z = -600.
+- NEAR BANK (village side, Y > 0), everything on top at Z = 1200:
+  - Ghat steps Y = 0 .. 4000 (X = -50000 .. 50000) rising from Z = -300 to +1200; bathers, washers,
+    buffaloes in the shallows, garbage piled at the waterline.
+  - Sandstone parapet with small domed kiosks at Y = 4150; busy littered strip Y = 4300 .. 5600.
+  - Railway at Y = 5900 (rail top Z ~ 1215): the packed EMU (cab + 9 coaches) runs right along the ghats.
+  - Dusty road Y = 7000 .. 7800 with autos/bikes; tin-shed stalls at Y = 7950; poles + wires at Y = 8250.
+  - Village: three rows of low 1-2 storey houses (facades at Y = 8700, 11400, 14100) with galis behind,
+    big shade trees, garbage heaps, then fields to Y ~ 30000.
+- FAR BANK (old city, Y < -15000), X = -40000 .. 40000: ghat steps Y = -15000 .. -19000 rising to
+  Z = 1200, riverfront houses / palaces facing the river at Y ~ -19500, a second row and temples behind.
+  Named ghats there: Dashashwamedh (X = 0, the drop-off), Manikarnika, Darbhanga, Scindia, Assi.
+- Driving along +X: village on the left, train and river on the right (as in the clip).
 
 ## Mission "Ganga Paar Delivery" (Hinglish)
-1. Pick up the order at Sharma Bhojnalaya (town, near the road).
+1. Pick up the order at Sharma Bhojnalaya (village, by the road).
 2. Ride the bike along the dusty road beside the train (or jump on the train roof).
-3. Reach Dashashwamedh Ghat, cross the Ganga (swim; HP drains in water).
-4. Deliver at Ramnagar Ghat on the far bank. Reward ₹ + time bonus.
+3. Reach the ghats, cross the Ganga (swim; HP drains in water).
+4. Deliver at Dashashwamedh Ghat on the far bank. Reward ₹ + time bonus.
 
 ## Materials (slot names used by all kit meshes; built in UE from Poly Haven 2k sets)
 | Slot | Poly Haven set |

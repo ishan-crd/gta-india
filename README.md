@@ -1,9 +1,14 @@
 # GTA India — Varanasi
 
 An Unreal Engine 5.8 open-world prototype inspired by the "GTA 6 India edition" clip: you are a
-food-delivery rider in Varanasi. Pick up an order in town, race along the dusty road beside an
-overcrowded train (or jump on its roof), reach Dashashwamedh Ghat and swim across the Ganga to
-deliver at Ramnagar Ghat before the timer runs out. Swimming in the Ganga drains your HP.
+food-delivery rider in Varanasi. Pick up an order in the railway-side village, race down the dusty road
+beside an overcrowded EMU (or jump onto its packed roof), reach the ghats where the track runs along the
+river, and swim across the garbage-choked Ganga to deliver at Dashashwamedh Ghat in the old city on the
+far bank. Swimming in the Ganga drains your HP.
+
+World cross-section (river -> inland), matching the clip: far-bank old city and ghats | the Ganga |
+near ghat steps | sandstone parapet with domed kiosks | railway | dusty road | tin-shed stalls |
+low village houses | fields. Driving along +X the village is on your left, train and river on your right.
 
 ## Layout
 
@@ -35,6 +40,7 @@ tools/pc/ue_python.sh tools/ue/07_material_usage.py      # usage flags (else def
 tools/pc/ue_python_editor.sh tools/ue/08_char_lods.py    # crowd LODs
 tools/pc/ue_python.sh tools/ue/09_detail.py              # debris, wires, grass, signboards
 tools/pc/ue_python.sh tools/ue/10_variety.py             # outfit colours, saree variants, underwater murk
+tools/pc/ue_python.sh tools/ue/15_reimport_player.py     # only after rebuilding SK_Player in Blender
 tools/pc/package.sh                             # Shipping build -> ~/gta-india/build
 ```
 
