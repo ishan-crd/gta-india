@@ -762,8 +762,29 @@ void AGIStory::PlaceCamera(const FGIStoryLine& L, float Alpha)
 		}
 		else if (Shot == TEXT("deep"))
 		{
-			From = O - Axis * 320.f + Side * 110.f + FVector(0.f, 0.f, 70.f);
+			// behind the listener, looking down the stage; slide sideways until no pillar is in the way
 			Look = S - FVector(0.f, 0.f, 25.f);
+			float Best = -1.f;
+			for (const float Off : { 110.f, -110.f, 240.f, -240.f, 380.f, -380.f })
+			{
+				const FVector Cand = O - Axis * 320.f + Side * Off + FVector(0.f, 0.f, 70.f);
+				const float R = Room(S, Cand);
+				if (R > Best + 0.05f)
+				{
+					Best = R;
+					From = Cand;
+				}
+				if (R >= 0.99f)
+				{
+					break;
+				}
+			}
+			if (Best < 0.5f)
+			{
+				Anchor = Mid;
+				From = SidePick(Mid, FMath::Max(320.f, Sep * 1.05f), -FVector(0.f, 0.f, 10.f));
+				Look = Mid - FVector(0.f, 0.f, 15.f);
+			}
 		}
 		else if (Shot == TEXT("high"))
 		{
