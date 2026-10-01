@@ -27,6 +27,12 @@ enum class EGIPoseMode : uint8
 	ClimbOut,     // hauling out of the river onto the steps (procedural, uses ClimbAlpha)
 	Angry,        // standing, telling someone off: pointing arm, hand on hip, head shake
 	Talk,         // standing and chatting: relaxed hand gestures, head movement
+	Drink,        // standing, glass of chai to the mouth (sips)
+	Throw,        // one-shot overarm throw (ActionAlpha 0..1)
+	Cheer,        // both arms up, waving (kids: "Yay!")
+	Bat,          // batsman stance, swings when ActionAlpha runs 0..1
+	Bowl,         // bowler: locomotion + windmill arm when ActionAlpha runs 0..1
+	Pour,         // chai-wallah pouring from a raised kettle into a glass
 };
 
 /** Game-thread inputs copied to the proxy every frame. */
@@ -52,6 +58,8 @@ struct FGIAnimParams
 	float IKAlpha = 0.f;
 	/** Mesh base rotation (component relative, without swim pitch). Used to find body axes. */
 	FQuat MeshBaseRotation = FQuat::Identity;
+	/** Right hand holds an umbrella up (any standing / walking mode). */
+	bool bHoldUmbrella = false;
 };
 
 /** Evaluates the pose natively: blended clips + procedural bone overlays. No anim graph needed. */

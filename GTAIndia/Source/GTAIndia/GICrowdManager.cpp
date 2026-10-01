@@ -14,6 +14,9 @@
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
 #include "GameFramework/PlayerStart.h"
+#include "GIDharavi.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 
 static const FQuat GMeshBase = FRotator(0.f, -90.f, 0.f).Quaternion();
 
@@ -390,6 +393,45 @@ void AGICrowdManager::UpdateBubble()
 	}
 }
 
+void AGICrowdManager::UpdateUmbrellas()
+{
+	// Monsoon: most people walking about open an umbrella (held up in the right hand).
+	const AGIWeather* W = AGIWeather::Get(this);
+	const bool bWant = W && (bUmbrellasOut ? W->GetRainAmount() > 0.3f : W->GetRainAmount() > 0.5f);
+	if (bWant == bUmbrellasOut)
+	{
+		return;
+	}
+	bUmbrellasOut = bWant;
+	for (int32 i = 0; i < People.Num(); ++i)
+	{
+		FPerson& P = People[i];
+		const bool bThis = bWant && P.Comp && (P.Lane != INDEX_NONE || P.BaseMode == EGIPoseMode::Talk) && (i * 7919) % 10 < 7;
+		if (bThis && !P.Umbrella)
+		{
+			if (UStaticMesh* Mesh = W->PickUmbrella(i))
+			{
+				P.Umbrella = NewObject<UStaticMeshComponent>(this);
+				P.Umbrella->SetStaticMesh(Mesh);
+				P.Umbrella->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+				P.Umbrella->SetupAttachment(P.Comp);
+				// Mesh space: the body faces +Y, its right side is -X; handle at the raised right hand.
+				P.Umbrella->SetRelativeLocation(FVector(-24.f, 16.f, 112.f));
+				P.Umbrella->RegisterComponent();
+				UmbrellaComps.Add(P.Umbrella);
+			}
+		}
+		if (P.Umbrella)
+		{
+			P.Umbrella->SetVisibility(bThis);
+		}
+		if (P.Anim)
+		{
+			P.Anim->Params.bHoldUmbrella = bThis && P.Umbrella != nullptr;
+		}
+	}
+}
+
 void AGICrowdManager::UpdateSignificance()
 {
 	// Shadows are the main cost of a big crowd: only people near the camera cast them.
@@ -428,6 +470,7 @@ void AGICrowdManager::Tick(float DeltaSeconds)
 	{
 		SignificanceTimer = 0.5f;
 		UpdateSignificance();
+		UpdateUmbrellas();
 	}
 	BubbleTimer -= DeltaSeconds;
 	if (BubbleTimer <= 0.f)
@@ -643,7 +686,7 @@ void AGICrowdManager::UpdateSpeech(float DeltaSeconds)
 			FPerson& P = People[Near[FMath::RandRange(0, Near.Num() - 1)]];
 			if (P.SpeakCooldown <= 0.f && FVector::Dist2D(P.Comp->GetComponentLocation(), PL) > 150.f)
 			{
-				Say(P, TEXT("ambient"), false);
+				Say(P, AmbientCategory, false);
 				break;
 			}
 		}

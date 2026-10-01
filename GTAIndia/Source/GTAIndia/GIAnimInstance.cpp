@@ -264,7 +264,15 @@ void FGIAnimProxy::Update(float DeltaSeconds)
 	case EGIPoseMode::ClimbOut:
 	case EGIPoseMode::Angry:
 	case EGIPoseMode::Talk:
+	case EGIPoseMode::Drink:
+	case EGIPoseMode::Throw:
+	case EGIPoseMode::Cheer:
+	case EGIPoseMode::Bat:
+	case EGIPoseMode::Pour:
 		Layers[L_Idle].Target = 1.f;
+		break;
+	case EGIPoseMode::Bowl:
+		SpeedBlend(Speed);
 		break;
 	case EGIPoseMode::Dead:
 		Layers[L_Death].Target = 1.f;
@@ -606,6 +614,99 @@ void FGIAnimProxy::ApplyProcedural(FPoseContext& Output) const
 		RotateBoneCS(Pose, Bones.Head, R, -4.f * G1 * Burst * Deg * A);
 		break;
 	}
+	case EGIPoseMode::Drink:
+	{
+		// Glass to the mouth, small sips every couple of seconds, head tips back while sipping.
+		const float Sip = FMath::Clamp(FMath::Sin(T * 2.2f) * 1.5f, 0.f, 1.f);
+		RotateBoneCS(Pose, Bones.UpperArmR, R, (-62.f - 8.f * Sip) * Deg * A);
+		RotateBoneCS(Pose, Bones.UpperArmR, F, 14.f * Deg * A);
+		RotateBoneCS(Pose, Bones.LowerArmR, R, (-118.f - 6.f * Sip) * Deg * A);
+		RotateBoneCS(Pose, Bones.Head, R, -10.f * Sip * Deg * A);
+		RotateBoneCS(Pose, Bones.UpperArmL, F, -8.f * Deg * A);
+		break;
+	}
+	case EGIPoseMode::Throw:
+	{
+		// Wind-up (arm back, body turns away), whip over the top, follow-through down across the body.
+		const float P = FMath::Clamp(Params.ActionAlpha, 0.f, 1.f);
+		const float Wind = FMath::Sin(FMath::Clamp(P / 0.45f, 0.f, 1.f) * PI * 0.5f);
+		const float Whip = FMath::SmoothStep(0.4f, 0.75f, P);
+		const float Arm = FMath::Lerp(45.f * Wind, -150.f, Whip) + 70.f * FMath::SmoothStep(0.75f, 1.f, P);
+		RotateBoneCS(Pose, Bones.UpperArmR, R, Arm * Deg * A);
+		RotateBoneCS(Pose, Bones.UpperArmR, F, 25.f * Deg * A);
+		RotateBoneCS(Pose, Bones.LowerArmR, R, (-70.f * Wind * (1.f - Whip) - 10.f) * Deg * A);
+		RotateBoneCS(Pose, Bones.Spine1, U, (-25.f * Wind + 35.f * Whip) * Deg * A);
+		RotateBoneCS(Pose, Bones.Spine2, R, (-4.f + 12.f * Whip) * Deg * A);
+		RotateBoneCS(Pose, Bones.UpperArmL, R, (-40.f * Wind) * Deg * A);
+		RotateBoneCS(Pose, Bones.ThighL, R, -18.f * Wind * Deg * A);
+		break;
+	}
+	case EGIPoseMode::Cheer:
+	{
+		// Arms up, waving, a little bounce in the knees.
+		const float W1 = FMath::Sin(T * 7.f), W2 = FMath::Sin(T * 7.f + 1.3f);
+		RotateBoneCS(Pose, Bones.UpperArmR, R, (-160.f + 8.f * W1) * Deg * A);
+		RotateBoneCS(Pose, Bones.UpperArmL, R, (-160.f + 8.f * W2) * Deg * A);
+		RotateBoneCS(Pose, Bones.UpperArmR, F, 18.f * Deg * A);
+		RotateBoneCS(Pose, Bones.UpperArmL, F, -18.f * Deg * A);
+		RotateBoneCS(Pose, Bones.LowerArmR, R, -15.f * W1 * Deg * A);
+		RotateBoneCS(Pose, Bones.LowerArmL, R, -15.f * W2 * Deg * A);
+		const float Bob = 0.5f + 0.5f * FMath::Sin(T * 9.f);
+		RotateBoneCS(Pose, Bones.ThighL, R, -14.f * Bob * Deg * A);
+		RotateBoneCS(Pose, Bones.ThighR, R, -14.f * Bob * Deg * A);
+		RotateBoneCS(Pose, Bones.CalfL, R, 26.f * Bob * Deg * A);
+		RotateBoneCS(Pose, Bones.CalfR, R, 26.f * Bob * Deg * A);
+		RotateBoneCS(Pose, Bones.Head, R, -12.f * Deg * A);
+		break;
+	}
+	case EGIPoseMode::Bat:
+	{
+		// Crouched guard stance, bat held low behind; ActionAlpha drives a swing across the body.
+		const float P = FMath::Clamp(Params.ActionAlpha, 0.f, 1.f);
+		const float Lift = FMath::Sin(FMath::Clamp(P / 0.35f, 0.f, 1.f) * PI * 0.5f) * (1.f - FMath::SmoothStep(0.35f, 0.6f, P));
+		const float Swing = FMath::SmoothStep(0.35f, 0.65f, P) * (1.f - FMath::SmoothStep(0.85f, 1.f, P));
+		RotateBoneCS(Pose, Bones.Spine1, R, -22.f * Deg * A);
+		RotateBoneCS(Pose, Bones.Spine1, U, (20.f * Lift - 45.f * Swing) * Deg * A);
+		RotateBoneCS(Pose, Bones.ThighL, R, -22.f * Deg * A);
+		RotateBoneCS(Pose, Bones.ThighR, R, -22.f * Deg * A);
+		RotateBoneCS(Pose, Bones.CalfL, R, 35.f * Deg * A);
+		RotateBoneCS(Pose, Bones.CalfR, R, 35.f * Deg * A);
+		const float ArmR = -35.f - 70.f * Lift - 40.f * Swing;
+		RotateBoneCS(Pose, Bones.UpperArmR, R, ArmR * Deg * A);
+		RotateBoneCS(Pose, Bones.UpperArmL, R, ArmR * Deg * A);
+		RotateBoneCS(Pose, Bones.UpperArmR, F, -20.f * Deg * A);
+		RotateBoneCS(Pose, Bones.UpperArmL, F, 22.f * Deg * A);
+		RotateBoneCS(Pose, Bones.LowerArmR, R, -40.f * Deg * A);
+		RotateBoneCS(Pose, Bones.LowerArmL, R, -40.f * Deg * A);
+		RotateBoneCS(Pose, Bones.Head, U, -25.f * Deg * A);
+		break;
+	}
+	case EGIPoseMode::Bowl:
+	{
+		// Run-up handled by locomotion; the bowling arm windmills over the top at delivery.
+		const float P = FMath::Clamp(Params.ActionAlpha, 0.f, 1.f);
+		if (P > 0.f && P < 1.f)
+		{
+			const float Arm = FMath::Lerp(30.f, -330.f, FMath::SmoothStep(0.f, 1.f, P));
+			RotateBoneCS(Pose, Bones.UpperArmR, R, Arm * Deg * A);
+			RotateBoneCS(Pose, Bones.UpperArmL, R, (-120.f * FMath::Sin(P * PI)) * Deg * A);
+			RotateBoneCS(Pose, Bones.Spine1, R, 15.f * FMath::Sin(P * PI) * Deg * A);
+		}
+		break;
+	}
+	case EGIPoseMode::Pour:
+	{
+		// Chai-wallah: kettle held high in the right hand, glass low in the left, the pour stretches and
+		// shrinks theatrically.
+		const float S = 0.5f + 0.5f * FMath::Sin(T * 1.6f);
+		RotateBoneCS(Pose, Bones.UpperArmR, R, (-95.f - 35.f * S) * Deg * A);
+		RotateBoneCS(Pose, Bones.UpperArmR, F, 20.f * Deg * A);
+		RotateBoneCS(Pose, Bones.LowerArmR, R, -35.f * Deg * A);
+		RotateBoneCS(Pose, Bones.UpperArmL, R, -42.f * Deg * A);
+		RotateBoneCS(Pose, Bones.LowerArmL, R, -55.f * Deg * A);
+		RotateBoneCS(Pose, Bones.Head, R, 8.f * Deg * A);
+		break;
+	}
 	case EGIPoseMode::ClimbOut:
 	{
 		// Phase 1 (0..0.55): hands planted on the step, chest down, pulling up.
@@ -626,6 +727,13 @@ void FGIAnimProxy::ApplyProcedural(FPoseContext& Output) const
 	}
 	default:
 		break;
+	}
+	if (Params.bHoldUmbrella)
+	{
+		// Umbrella handle held in front of the chest, canopy above the head.
+		RotateBoneCS(Pose, Bones.UpperArmR, R, -38.f * Deg);
+		RotateBoneCS(Pose, Bones.UpperArmR, F, 12.f * Deg);
+		RotateBoneCS(Pose, Bones.LowerArmR, R, -92.f * Deg);
 	}
 }
 

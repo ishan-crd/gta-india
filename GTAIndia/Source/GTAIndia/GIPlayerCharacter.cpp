@@ -6,6 +6,7 @@
 #include "GIRiver.h"
 #include "GITrain.h"
 #include "GITraffic.h"
+#include "GIDharavi.h"
 #include "Engine/StaticMesh.h"
 #include "GTAIndia.h"
 #include "Camera/CameraComponent.h"
@@ -103,6 +104,12 @@ void AGIPlayerCharacter::SetupLook()
 		// DeliveryBoxOffset is a mesh-space position (reference pose); convert it to the bone's space so
 		// the box follows the spine without depending on the bone's axis convention.
 		DeliveryBox->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, S.DeliveryBoxBone);
+		// No delivery in Dharavi: the walk-around has no bag on his back (like the clip).
+		if (GetWorld() && GetWorld()->GetMapName().Contains(TEXT("Dharavi")))
+		{
+			bNoBox = true;
+			DeliveryBox->SetVisibility(false);
+		}
 		if (const USkeletalMesh* SK = GetMesh()->GetSkeletalMeshAsset())
 		{
 			const int32 BoneIdx = SK->GetRefSkeleton().FindBoneIndex(S.DeliveryBoxBone);
@@ -292,6 +299,10 @@ void AGIPlayerCharacter::UpdateCameraFeel(float DeltaSeconds)
 	{
 		bOwnerHidden = bHide;
 		GetMesh()->SetVisibility(!bHide, true);
+		if (bNoBox)
+		{
+			DeliveryBox->SetVisibility(false);
+		}
 		GetMesh()->bCastHiddenShadow = true;
 		DeliveryBox->bCastHiddenShadow = true;
 	}
@@ -372,9 +383,22 @@ void AGIPlayerCharacter::UpdateAnimation(float DeltaSeconds)
 	Anim->Params.bInAir = Move->IsFalling();
 	Anim->Params.MeshBaseRotation = MeshBaseRotation;
 	PickUpTimer = FMath::Max(0.f, PickUpTimer - DeltaSeconds);
+	if (ActionTimer > 0.f)
+	{
+		ActionTimer = FMath::Max(0.f, ActionTimer - DeltaSeconds);
+		if (ActionTimer <= 0.f && HandProp)
+		{
+			HandProp->SetVisibility(false);
+		}
+	}
 	if (bDead)
 	{
 		Anim->Params.Mode = EGIPoseMode::Dead;
+	}
+	else if (ActionTimer > 0.f)
+	{
+		Anim->Params.Mode = ActionMode;
+		Anim->Params.ActionAlpha = 1.f - ActionTimer / FMath::Max(ActionDuration, 0.01f);
 	}
 	else if (PickUpTimer > 0.f)
 	{
@@ -480,6 +504,22 @@ void AGIPlayerCharacter::UpdateInteraction()
 			return;
 		}
 	}
+	for (TActorIterator<AGIChaiStall> It(GetWorld()); It; ++It)
+	{
+		if (It->CanServe(this))
+		{
+			Prompt = LOCTEXT("PromptChai", "[E / X] Cutting chai lo (\u20B910)");
+			return;
+		}
+	}
+	for (TActorIterator<AGICricketGame> It(GetWorld()); It; ++It)
+	{
+		if (It->WantsBallFromPlayer(this))
+		{
+			Prompt = LOCTEXT("PromptBall", "[E / X] Ball wapas phenko");
+			return;
+		}
+	}
 	FVector Roof;
 	if (AGITrain* Train = FindNearbyTrain(Roof))
 	{
@@ -503,7 +543,7 @@ void AGIPlayerCharacter::UpdateInteraction()
 int32 AGIPlayerCharacter::FerryDirection() const
 {
 	const FVector L = GetActorLocation();
-	if (IsSwimming() || FMath::Abs(L.X) > 14000.f)
+	if (IsSwimming() || FMath::Abs(L.X) > 14000.f || !AGIRiver::Get(this))   // ferries only where there is a river
 	{
 		return 0;
 	}
@@ -535,7 +575,7 @@ void AGIPlayerCharacter::TakeFerry(int32 Direction)
 
 void AGIPlayerCharacter::InputMove(const FInputActionValue& Value)
 {
-	if (bDead || !Controller || PickUpTimer > 0.f)
+	if (bDead || !Controller || PickUpTimer > 0.f || ActionTimer > 0.f)
 	{
 		return;
 	}
@@ -585,9 +625,25 @@ void AGIPlayerCharacter::InputSprint(bool bOn)
 
 void AGIPlayerCharacter::InputInteract()
 {
-	if (bDead || IsRiding())
+	if (bDead || IsRiding() || ActionTimer > 0.f)
 	{
 		return;
+	}
+	for (TActorIterator<AGICricketGame> It(GetWorld()); It; ++It)
+	{
+		if (It->WantsBallFromPlayer(this))
+		{
+			It->PlayerReturnsBall(this);
+			return;
+		}
+	}
+	for (TActorIterator<AGIChaiStall> It(GetWorld()); It; ++It)
+	{
+		if (It->CanServe(this))
+		{
+			It->Serve(this);
+			return;
+		}
 	}
 	if (const int32 Ferry = FerryDirection())
 	{
@@ -670,6 +726,27 @@ void AGIPlayerCharacter::DetachFromBike()
 		SetActorLocationAndRotation(Bike->GetActorLocation() + Side + FVector(0, 0, 100.f), FRotator(0.f, Bike->GetActorRotation().Yaw, 0.f), false, nullptr, ETeleportType::TeleportPhysics);
 	}
 	GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+}
+
+void AGIPlayerCharacter::PlayAction(EGIPoseMode Mode, float Duration, UStaticMesh* Prop)
+{
+	ActionMode = Mode;
+	ActionDuration = Duration;
+	ActionTimer = Duration;
+	GetCharacterMovement()->StopMovementImmediately();
+	if (Prop)
+	{
+		if (!HandProp)
+		{
+			HandProp = NewObject<UStaticMeshComponent>(this);
+			HandProp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			HandProp->SetupAttachment(GetMesh(), TEXT("hand_r"));
+			HandProp->RegisterComponent();
+		}
+		HandProp->SetStaticMesh(Prop);
+		HandProp->SetRelativeLocationAndRotation(FVector(4.f, 7.f, 0.f), FRotator::ZeroRotator);
+		HandProp->SetVisibility(true);
+	}
 }
 
 void AGIPlayerCharacter::PlayPickUp()

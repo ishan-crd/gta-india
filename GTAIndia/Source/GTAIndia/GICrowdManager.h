@@ -6,6 +6,7 @@
 #include "GICrowdManager.generated.h"
 
 class USkeletalMeshComponent;
+class UStaticMeshComponent;
 
 /** A straight walking lane (people walk back and forth along it). */
 USTRUCT(BlueprintType)
@@ -58,6 +59,8 @@ public:
 	/** The crowd follows the player: people further than this (and off screen) are moved to free lanes /
 	 *  spots around the player, so the whole budget is spent where it is seen. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crowd") float BubbleRadius = 8500.f;
+	/** Voice-line category for background chatter (Varanasi: ambient, Mumbai: mumbai). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crowd") FName AmbientCategory = TEXT("ambient");
 
 	/** Rebuilds the crowd (called after the settings menu changes density). */
 	void Rebuild();
@@ -88,7 +91,11 @@ private:
 		float BaseYaw = 0.f;
 		bool bSitting = false;
 		int32 Spot = INDEX_NONE;
+		UStaticMeshComponent* Umbrella = nullptr;
 	};
+	void UpdateUmbrellas();
+	bool bUmbrellasOut = false;
+	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> UmbrellaComps;
 
 	struct FLaneCand
 	{

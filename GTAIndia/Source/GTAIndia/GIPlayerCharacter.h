@@ -48,6 +48,18 @@ public:
 	void AddMoney(int32 Amount);
 	void ApplyDamageSimple(float Amount, bool bShowPopup = true);
 	void RestoreHealth() { Health = MaxHealth; }
+	void Heal(float Amount) { Health = FMath::Min(MaxHealth, Health + Amount); }
+
+	/** Timed full-body action (drink chai, throw a ball...): plays the pose, freezes movement, optional
+	 *  prop in the right hand for the duration. */
+	void PlayAction(EGIPoseMode Mode, float Duration, class UStaticMesh* HandProp = nullptr);
+	bool IsInAction() const { return ActionTimer > 0.f; }
+
+	/** Story flags for the Dharavi walk-around. */
+	bool bDidChai = false;
+	bool bReturnedBall = false;
+	/** Map without the delivery job (Dharavi): keep the bag hidden. */
+	bool bNoBox = false;
 
 	/** Prompt shown on the HUD (e.g. "[E] Train pe chadho"). Empty = none. */
 	FText GetPrompt() const { return Prompt; }
@@ -115,6 +127,10 @@ private:
 	void UpdateCameraFeel(float DeltaSeconds);
 	void UpdateUnderwaterCamera();
 	float PickUpTimer = 0.f;
+	float ActionTimer = 0.f;
+	float ActionDuration = 1.f;
+	EGIPoseMode ActionMode = EGIPoseMode::Locomotion;
+	UPROPERTY() TObjectPtr<UStaticMeshComponent> HandProp;
 
 public:
 	/** Plays the pick-up animation and briefly freezes movement. */
