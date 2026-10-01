@@ -1,0 +1,10 @@
+GTAIndia/Binaries/
+GTAIndia/Intermediate/
+GTAIndia/Saved/
+GTAIndia/DerivedDataCache/
+GTAIndia/Content/
+GTAIndia/.vscode/
+GTAIndia/*.code-workspace
+GTAIndia/Makefile
+GTAIndia/CMakeLists.txt
+.DS_Store
