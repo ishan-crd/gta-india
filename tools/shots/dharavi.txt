@@ -1,0 +1,10 @@
+d0_go city Dharavi
+d1_gateway player 0 700 110 90 -4
+d2_blue_lane player -7600 3400 110 0 -6
+d3_cricket_square player -1300 4500 110 180 -8
+d4_corrugated player -11000 10600 110 0 -5
+d5_market player -7000 450 110 0 -3
+d6_chai player -3200 680 110 90 -10
+d7_chawl_cricket player 6600 8200 110 180 -6
+d8_main_road player 4000 -250 110 0 -3
+d9_main_road_rain rain
