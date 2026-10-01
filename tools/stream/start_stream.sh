@@ -29,6 +29,9 @@ fi
 # Anyone on the machine may render to it (the X server runs as root).
 DISPLAY=:5 xhost +SI:localuser:"$USER" >/dev/null 2>&1 || true
 DISPLAY=:5 xset s off -dpms >/dev/null 2>&1 || true
+# The headless screen can come up at the driver's maximum (8192x4096) after a reboot: the game would then
+# sit in a corner of a huge black desktop in the stream. Pin it to the game resolution.
+DISPLAY=:5 xrandr --fb 1920x1080 >/dev/null 2>&1 || true
 
 # Patch Selkies for mouse look (see patch_selkies.py): absolute browser moves become deltas while the
 # game hides the cursor, and a plain click grabs pointer lock.
