@@ -1,7 +1,8 @@
 """gi_box.py - SM_DeliveryBox.fbx: 44 (W, X) x 42 (D, Y) x 44 (H, Z) cm insulated delivery backpack box.
 Pivot = centre of the face that touches the rider's back (the box's -Y face); box extends toward +Y.
 In Blender the character faces -Y, so his back faces +Y: place the pivot on the upper back with NO rotation and the box
-sits behind him. Straps are on the -Y face. Text "GANGA EXPRESS" on the outward +Y face.
+sits behind him. Straps are on the -Y face; a webbing carry handle arches over the top. Red Zomato-style
+padded bag (texture from gi_box_texture.py): wordmark on the outward +Y face and both sides.
 blender -b --python gi_box.py  (expects characters/T_DeliveryBox_BaseColor.png from gi_box_texture.py)
 """
 import bpy, bmesh, os, sys, shutil
@@ -17,7 +18,7 @@ bm = bmesh.new()
 bmesh.ops.create_cube(bm, size=1.0)
 for v in bm.verts:
     v.co = Vector((v.co.x * W, v.co.y * D + D / 2, v.co.z * H))
-bmesh.ops.bevel(bm, geom=list(bm.edges), offset=0.025, segments=3, affect='EDGES', profile=0.5)
+bmesh.ops.bevel(bm, geom=list(bm.edges), offset=0.04, segments=4, affect='EDGES', profile=0.55)   # padded, soft edges
 box_faces = list(bm.faces)
 # straps: two slightly arched bands on the -Y face
 strap_faces = []
@@ -33,6 +34,18 @@ for sx in (-0.11, 0.11):
     for v in vs:
         t = v.co.z / ((H - 0.04) / 2)
         v.co.y -= 0.035 * (1 - t * t)          # arch away from the box (toward the back)
+    strap_faces += list({f for v in vs for f in v.link_faces})
+# carry handle: a flat webbing loop arching over the top, running front-to-back (along Y)
+import math
+seg = 12
+for k in range(seg):
+    a0, a1 = math.pi * k / seg, math.pi * (k + 1) / seg
+    ret = bmesh.ops.create_cube(bm, size=1.0)
+    vs = ret["verts"]
+    for v in vs:
+        a = a0 if v.co.y < 0 else a1
+        r = 0.09 + (0.008 if v.co.z > 0 else -0.008)
+        v.co = Vector((v.co.x * 0.04, D / 2 - math.cos(a) * 0.11, H / 2 + math.sin(a) * r + 0.004))
     strap_faces += list({f for v in vs for f in v.link_faces})
 strap_set = set(strap_faces)
 uv = bm.loops.layers.uv.new("UVMap")
