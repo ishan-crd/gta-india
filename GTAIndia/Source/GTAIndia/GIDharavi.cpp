@@ -803,4 +803,84 @@ void AGIWeather::Apply()
 	}
 }
 
+// --------------------------------------------------------------------------------- level profile
+AGILevelProfile* AGILevelProfile::Get(const UObject* WorldContext)
+{
+	UWorld* World = WorldContext ? WorldContext->GetWorld() : nullptr;
+	if (!World)
+	{
+		return nullptr;
+	}
+	for (TActorIterator<AGILevelProfile> It(World); It; ++It)
+	{
+		return *It;
+	}
+	return nullptr;
+}
+
+// -------------------------------------------------------------------------------- scripted walker
+AGIScriptedWalker::AGIScriptedWalker()
+{
+	PrimaryActorTick.bCanEverTick = true;
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	RootComponent->SetMobility(EComponentMobility::Movable);
+}
+
+void AGIScriptedWalker::BeginPlay()
+{
+	Super::BeginPlay();
+	A = GetActorLocation();
+	B = EndPoint;
+	T = FMath::Clamp(StartAlpha, 0.f, 1.f);
+	if (Mesh)
+	{
+		Body = NewPerson(this, Mesh, EGIPoseMode::Locomotion, FMath::FRand() * 4.f);
+		Body->SetUsingAbsoluteLocation(true);
+		Body->SetUsingAbsoluteRotation(true);
+		Anim = Cast<UGIAnimInstance>(Body->GetAnimInstance());
+	}
+	Yaw = (B - A).Rotation().Yaw;
+}
+
+void AGIScriptedWalker::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (!Body)
+	{
+		return;
+	}
+	const float Len = FMath::Max(FVector::Dist2D(A, B), 1.f);
+	float Want = Speed;
+	if (Pause > 0.f)
+	{
+		Pause -= DeltaSeconds;
+		Want = 0.f;
+	}
+	// ease in / out so the stride blends smoothly from idle to walk and back
+	CurSpeed = FMath::FInterpTo(CurSpeed, Want, DeltaSeconds, 2.5f);
+	T += Dir * CurSpeed * DeltaSeconds / Len;
+	if (T >= 1.f || T <= 0.f)
+	{
+		T = FMath::Clamp(T, 0.f, 1.f);
+		Dir = -Dir;
+		Pause = PauseAtEnds;
+	}
+	const FVector P = FMath::Lerp(A, B, T);
+	const float WantYaw = ((Dir > 0.f ? B - A : A - B)).Rotation().Yaw;
+	Yaw = FMath::FixedTurn(Yaw, WantYaw, 140.f * DeltaSeconds);
+	// keep the feet on the ground
+	FHitResult Hit;
+	FCollisionQueryParams Q(SCENE_QUERY_STAT(GIWalker), false, this);
+	float Z = P.Z;
+	if (GetWorld()->LineTraceSingleByChannel(Hit, P + FVector(0, 0, 150.f), P - FVector(0, 0, 300.f), ECC_Visibility, Q))
+	{
+		Z = Hit.ImpactPoint.Z;
+	}
+	Body->SetWorldLocationAndRotation(FVector(P.X, P.Y, Z), FRotator(0.f, Yaw - 90.f, 0.f));
+	if (Anim)
+	{
+		Anim->Params.Speed = CurSpeed;
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

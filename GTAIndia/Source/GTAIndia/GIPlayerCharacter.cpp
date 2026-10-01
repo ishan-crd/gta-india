@@ -93,10 +93,32 @@ bool AGIPlayerCharacter::IsSwimming() const
 void AGIPlayerCharacter::SetupLook()
 {
 	const UGIAssetSettings& S = UGIAssetSettings::Get();
-	if (USkeletalMesh* Mesh = S.PlayerMesh.LoadSynchronous())
+	const AGILevelProfile* Profile = AGILevelProfile::Get(this);
+	if (USkeletalMesh* Mesh = (Profile && Profile->PlayerMesh) ? Profile->PlayerMesh.Get() : S.PlayerMesh.LoadSynchronous())
 	{
 		GetMesh()->SetSkeletalMesh(Mesh);
 		GetMesh()->SetAnimInstanceClass(UGIAnimInstance::StaticClass());
+	}
+	if (Profile)
+	{
+		// Scene-specific chase camera (the Trial lane: low, close, centred, like the reference shot).
+		DefaultArmLength = Profile->ArmLength;
+		CameraBoom->TargetArmLength = Profile->ArmLength;
+		CameraBoom->SocketOffset = Profile->SocketOffset;
+		CameraBoom->CameraLagSpeed = Profile->CameraLagSpeed;
+		CameraBoom->bEnableCameraRotationLag = Profile->RotationLagSpeed > 0.f;
+		CameraBoom->CameraRotationLagSpeed = Profile->RotationLagSpeed;
+		if (Profile->WalkSpeed > 0.f)
+		{
+			if (UGICharacterMovement* Move = GetGIMovement())
+			{
+				Move->BaseWalkSpeed = Profile->WalkSpeed;
+			}
+		}
+		if (AController* C = GetController())
+		{
+			C->SetControlRotation(FRotator(Profile->StartPitch, GetActorRotation().Yaw, 0.f));
+		}
 	}
 	if (UStaticMesh* Box = S.DeliveryBoxMesh.LoadSynchronous())
 	{
@@ -105,7 +127,7 @@ void AGIPlayerCharacter::SetupLook()
 		// the box follows the spine without depending on the bone's axis convention.
 		DeliveryBox->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, S.DeliveryBoxBone);
 		// No delivery in Dharavi: the walk-around has no bag on his back (like the clip).
-		if (GetWorld() && GetWorld()->GetMapName().Contains(TEXT("Dharavi")))
+		if (GetWorld() && (GetWorld()->GetMapName().Contains(TEXT("Dharavi")) || (Profile && Profile->bHideBag)))
 		{
 			bNoBox = true;
 			DeliveryBox->SetVisibility(false);
@@ -174,6 +196,14 @@ void AGIPlayerCharacter::ApplyUserSettings()
 		}
 		FollowCamera->SetFieldOfView(Settings->FieldOfView);
 		BaseFOV = Settings->FieldOfView;
+		if (const AGILevelProfile* Profile = AGILevelProfile::Get(this))
+		{
+			if (Profile->FieldOfView > 0.f)
+			{
+				BaseFOV = Profile->FieldOfView;
+				FollowCamera->SetFieldOfView(BaseFOV);
+			}
+		}
 	}
 }
 

@@ -174,3 +174,59 @@ private:
 	float Elapsed = 0.f;
 	float ThunderTimer = 12.f;
 };
+
+/**
+ * Per-map presentation overrides (the Trial scene): chase-camera framing, lens, player model, no bag.
+ * The player reads the first one found in the level at BeginPlay.
+ */
+UCLASS()
+class GTAINDIA_API AGILevelProfile : public AActor
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera") float ArmLength = 270.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera") FVector SocketOffset = FVector(0.f, 8.f, 26.f);
+	/** Horizontal FOV forced for this map (0 = use the player's setting). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera") float FieldOfView = 75.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera") float StartPitch = -5.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera") float CameraLagSpeed = 10.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera") float RotationLagSpeed = 14.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player") TObjectPtr<USkeletalMesh> PlayerMesh;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player") bool bHideBag = true;
+	/** Walking pace for this scene (cm/s); 0 = default. A relaxed stroll reads more natural in a narrow lane. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player") float WalkSpeed = 0.f;
+
+	static AGILevelProfile* Get(const UObject* WorldContext);
+};
+
+/** An NPC that strolls back and forth between two points (e.g. the woman in the sari walking down the lane). */
+UCLASS()
+class GTAINDIA_API AGIScriptedWalker : public AActor
+{
+	GENERATED_BODY()
+
+public:
+	AGIScriptedWalker();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Walker") TObjectPtr<USkeletalMesh> Mesh;
+	/** Second end of the walk, world space (the first end is the actor location). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Walker") FVector EndPoint = FVector::ZeroVector;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Walker") float Speed = 105.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Walker") float PauseAtEnds = 4.f;
+	/** Start part-way along the path (0..1), walking towards EndPoint. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Walker") float StartAlpha = 0.f;
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
+
+private:
+	UPROPERTY() TObjectPtr<USkeletalMeshComponent> Body;
+	class UGIAnimInstance* Anim = nullptr;
+	FVector A = FVector::ZeroVector, B = FVector::ZeroVector;
+	float T = 0.f;
+	float Dir = 1.f;
+	float Pause = 0.f;
+	float Yaw = 0.f;
+	float CurSpeed = 0.f;
+};

@@ -279,6 +279,7 @@ TSharedRef<SWidget> SGIMenu::BuildTitle()
 	};
 	Add(LOCTEXT("PlayVaranasi", "VARANASI  -  Ganga Paar Delivery"), [O]() { if (O.IsValid()) O->StartCity(TEXT("Varanasi")); });
 	Add(LOCTEXT("PlayMumbai", "MUMBAI  -  Dharavi ki Galiyan"), [O]() { if (O.IsValid()) O->StartCity(TEXT("Dharavi")); });
+	Add(LOCTEXT("PlayTrial", "TRIAL  -  Ek Gali (Dharavi)"), [O]() { if (O.IsValid()) O->StartCity(TEXT("Trial")); });
 	Add(LOCTEXT("Settings", "SETTINGS"), [O]() { if (O.IsValid()) O->OpenPage(EGIMenuPage::Settings); });
 	Add(LOCTEXT("Controls", "CONTROLS"), [O]() { if (O.IsValid()) O->OpenPage(EGIMenuPage::Controls); });
 	Add(LOCTEXT("Credits", "CREDITS"), [O]() { if (O.IsValid()) O->OpenPage(EGIMenuPage::Credits); });

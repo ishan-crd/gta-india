@@ -715,7 +715,8 @@ void AGIPlayerController::StartGame()
 	if (APawn* P = GetPawn())
 	{
 		SetViewTargetWithBlend(P, 1.6f, VTBlend_EaseInOut, 2.f);
-		SetControlRotation(FRotator(-10.f, P->GetActorRotation().Yaw, 0.f));
+		const AGILevelProfile* Profile = AGILevelProfile::Get(this);
+		SetControlRotation(FRotator(Profile ? Profile->StartPitch : -10.f, P->GetActorRotation().Yaw, 0.f));
 	}
 	if (AGIPlayerCharacter* C = GetCharacter())
 	{
