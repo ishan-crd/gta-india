@@ -975,4 +975,6 @@ def registry():
     kit_village.register(add)
     import kit_dharavi
     kit_dharavi.register(add)
+    import kit_trial
+    kit_trial.register(add)
     return R

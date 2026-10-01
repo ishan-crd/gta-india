@@ -22,7 +22,7 @@ from kit_arch import scaled_profile
 try:
     import kit_export as _KE
     _KE.PALETTE.update({
-        'M_PlasterTeal': '#4FA59A', 'M_PlasterTurquoise': '#5BC2C4', 'M_PlasterCream': '#E4D6B0',
+        'M_PlasterTeal': '#4FA59A', 'M_PlasterTurquoise': '#5BC2C4', 'M_PlasterBlueVivid': '#2F6FCC', 'M_PlasterCream': '#E4D6B0',
         'M_BrickExposed': '#9A6A4E', 'M_AsbestosRoof': '#9C9890', 'M_CorrugatedGalv': '#8C8D8A',
         'M_CorrugatedPainted': '#9A4A33', 'M_TinGreen': '#3F6A3A', 'M_TinBlue': '#2C4F75', 'M_ConcreteDirty': '#7F7A70',
         'M_TarpBlue': '#2050A8', 'M_PlasticBlue': '#1A4FB0', 'M_PlasticRed': '#C0201C', 'M_PlasticYellow': '#E8B020',

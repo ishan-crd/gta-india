@@ -129,7 +129,9 @@ def main():
               "M_Leaf": (0.22, 0.28, 0.08), "M_Foam": (0.8, 0.78, 0.7)}
     mis = {}
     for slot, c in colors.items():
-        mis[slot] = make_instance("MI_" + slot[2:], floating, {"Color": c, "Roughness": 0.5 if slot != "M_Foam" else 0.9})
+        # "MI_Float*": the river-debris versions must not overwrite the solid kit instances of the same slot
+        # (e.g. MI_PlasticBlue on the blue drums).
+        mis[slot] = make_instance("MI_Float" + slot[2:], floating, {"Color": c, "Roughness": 0.5 if slot != "M_Foam" else 0.9})
     mis["M_Cloth"] = make_instance("MI_DebrisRag", floating, {"Color": (0.35, 0.12, 0.08), "Roughness": 0.8})
     mis["M_WindowDark"] = load(f"{MAT_DIR}/Instances/MI_WindowDark")
     litter = build_litter()

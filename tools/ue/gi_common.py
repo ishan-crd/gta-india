@@ -63,6 +63,7 @@ SLOT_TEXTURES = {
     "M_MuddyTracks": "muddy_tracks",
     # --- Dharavi kit (kit_dharavi.py)
     "M_PlasterTeal": "painted_concrete",            # green-teal peeling paint
+    "M_PlasterBlueVivid": "blue_plaster_weathered",   # Trial lane: saturated cobalt / sky-blue paint
     "M_PlasterTurquoise": "blue_plaster_weathered",  # tinted turquoise (SLOT_TWEAKS)
     "M_PlasterCream": "white_plaster_rough_01",      # tinted cream
     "M_BrickExposed": "rough_plaster_brick",         # exposed brick with plaster remains
@@ -94,16 +95,17 @@ SLOT_TWEAKS = {
     # --- Dharavi kit
     "M_PlasterTeal": {"tint": (0.75, 1.05, 1.1)},
     "M_PlasterTurquoise": {"tint": (0.55, 1.2, 1.25)},
+    "M_PlasterBlueVivid": {"tint": (0.18, 0.55, 1.45)},
     "M_PlasterCream": {"tint": (1.6, 1.5, 1.25)},
     "M_AsbestosRoof": {"tint": (1.05, 1.05, 1.05), "uv": 1.0},
-    "M_LaundryRed": {"tint": (0.95, 0.08, 0.06), "two_sided": True},
-    "M_LaundryYellow": {"tint": (1.3, 0.95, 0.08), "two_sided": True},
-    "M_LaundryPink": {"tint": (1.3, 0.3, 0.6), "two_sided": True},
-    "M_LaundryGreen": {"tint": (0.12, 0.65, 0.18), "two_sided": True},
-    "M_LaundryBlueL": {"tint": (0.35, 0.65, 1.3), "two_sided": True},
-    "M_LaundryWhite": {"tint": (1.3, 1.3, 1.3), "two_sided": True},
-    "M_LaundryPurple": {"tint": (0.45, 0.12, 0.8), "two_sided": True},
-    "M_LaundryOrange": {"tint": (1.3, 0.45, 0.05), "two_sided": True},
+    "M_LaundryRed": {"tint": (0.62, 0.12, 0.09), "two_sided": True},
+    "M_LaundryYellow": {"tint": (0.85, 0.62, 0.10), "two_sided": True},
+    "M_LaundryPink": {"tint": (0.85, 0.32, 0.36), "two_sided": True},
+    "M_LaundryGreen": {"tint": (0.09, 0.28, 0.13), "two_sided": True},
+    "M_LaundryBlueL": {"tint": (0.28, 0.50, 0.85), "two_sided": True},
+    "M_LaundryWhite": {"tint": (0.95, 0.94, 0.90), "two_sided": True},
+    "M_LaundryPurple": {"tint": (0.30, 0.20, 0.45), "two_sided": True},
+    "M_LaundryOrange": {"tint": (0.80, 0.38, 0.12), "two_sided": True},
     "M_SackWhite": {"tint": (1.25, 1.25, 1.2), "uv": 3.0},
     "M_SackGreen": {"tint": (0.35, 0.75, 0.4), "uv": 3.0},
     "M_SackBlue": {"tint": (0.3, 0.5, 1.1), "uv": 3.0},
