@@ -17,6 +17,11 @@ ap.add_argument("--targettris", type=int, default=100000)
 ap.add_argument("--drop-mats", default="", help="comma list: drop source meshes whose materials are all in it (e.g. opaque glasses)")
 ap.add_argument("--yellow-slots", default="", help="comma list of source materials (e.g. outfit_top) whose whole base texture becomes delivery-yellow")
 ap.add_argument("--darken-green", default="", help="comma list of source materials whose base texture has green-dominant pixels (bad hair dye) -> near-black hair")
+ap.add_argument("--garment-color", action="append", default=[], metavar="SLOT=R,G,B",
+                help="repeatable: source material SLOT's whole base texture becomes sRGB colour R,G,B (0-255), folds kept from luminance")
+ap.add_argument("--dhoti", default="", metavar="SLOT", help="replace the trousers mesh of material SLOT (e.g. outfit_bottom) with a procedural dhoti (dhoti.py)")
+ap.add_argument("--dhoti-under", default="outfit_top", metavar="SLOT", help="with --dhoti: shirt material the dhoti waist tucks under")
+ap.add_argument("--register", action="store_true", help="upsert this character into characters/manifest.json after export")
 a = ap.parse_args(sys.argv[sys.argv.index("--") + 1:])
 
 ROOT = os.path.expanduser("~/gta-india/assets")
@@ -227,6 +232,14 @@ for c in J:
 J["root"] = Vector((0, 0, 0))
 print("height", a.height, "scale", k, "hips z", J["Hips"].z)
 
+# ---------------------------------------------------------------- optional: trousers -> procedural dhoti
+if a.dhoti:
+    import dhoti as D
+    ctex, btex = D.make_textures(os.path.join(WORK, "_gen_" + SHORT))
+    D.build(body, J, a.dhoti, a.dhoti_under, ctex, btex)
+    tris = sum(len(p.vertices) - 2 for p in me.polygons)
+    print("tris with dhoti", tris)
+
 if a.template:
     for c in G.CANON_NAMES:
         rot[c] = G.bone_orient(c, dir_of(c))
@@ -323,6 +336,27 @@ def garment_to_yellow(img, dst):
     return out
 
 
+def garment_to_color(img, dst, rgb):
+    """Whole garment texture -> flat sRGB colour rgb (0-1), keeping folds / seams from luminance (alpha kept)."""
+    w, h = img.size
+    px = np.empty(w * h * 4, dtype=np.float32); img.pixels.foreach_get(px); px = px.reshape(-1, 4)
+    lum = px[:, 0] * 0.3 + px[:, 1] * 0.55 + px[:, 2] * 0.15
+    ref = float(np.percentile(lum, 80)) + 1e-4
+    shade = np.clip(lum / ref, 0.15, 1.15) ** 0.85
+    px[:, :3] = np.clip(np.array(rgb, dtype=np.float32)[None, :] * shade[:, None], 0, 1)
+    out = bpy.data.images.new(os.path.basename(dst), w, h, alpha=True)
+    out.pixels.foreach_set(px.ravel())
+    out.filepath_raw = dst; out.file_format = 'PNG'; out.save()
+    print("garment_to_color", os.path.basename(dst), rgb)
+    return out
+
+
+GARMENT = {}
+for gc in a.garment_color:
+    sl, rgb = gc.split("=")
+    GARMENT[sl] = [float(x) / 255.0 for x in rgb.split(",")]
+
+
 def recolor_yellow(img, dst):
     w, h = img.size
     px = np.empty(w * h * 4, dtype=np.float32); img.pixels.foreach_get(px); px = px.reshape(-1, 4)
@@ -394,6 +428,12 @@ for slot in body.material_slots:
                 newimg.colorspace_settings.name = 'sRGB'
                 n.image = newimg
                 img = newimg
+            elif role == "base" and orig in GARMENT:
+                dst = os.path.join(TEXDIR, f"T_{SHORT}_{orig}_BaseColor_Tint.png".replace(" ", "_"))
+                newimg = garment_to_color(img, dst, GARMENT[orig])
+                newimg.colorspace_settings.name = 'sRGB'
+                n.image = newimg
+                img = newimg
             elif role == "base" and a.recolor:
                 dst = os.path.join(TEXDIR, f"T_{SHORT}_{orig}_BaseColor_Yellow.png")
                 newimg = recolor_yellow(img, dst)
@@ -441,3 +481,20 @@ bpy.ops.export_scene.fbx(filepath=fbx, use_selection=True, object_types={'ARMATU
                          bake_anim=False, mesh_smooth_type='FACE', use_mesh_modifiers=False, use_tspace=False,
                          path_mode='COPY', embed_textures=False)
 print("EXPORTED", fbx, "tris", tris)
+
+if a.register:
+    # same entry shape as gi_manifest.py; replaces an entry of the same name or appends
+    mpath = os.path.join(OUT, "manifest.json")
+    man = G.load_json(mpath) if os.path.exists(mpath) else {"characters": []}
+    ent = {"name": a.name, "file": info["file"], "height_m": a.height, "gender": a.gender, "tris": tris,
+           "source": a.src, "textures_dir": f"textures/{SHORT}", "texture_copies_for_fbx": a.name + ".fbm/",
+           "age": "adult",
+           "textures": {m: {"base": t["base"], "normal": t["normal"], "roughness": t["roughness"]} for m, t in texinfo.items()}}
+    chars = man.setdefault("characters", [])
+    hit = [i for i, c in enumerate(chars) if c.get("name") == a.name]
+    if hit:
+        chars[hit[0]] = ent
+    else:
+        chars.append(ent)
+    G.save_json(mpath, man)
+    print("registered", a.name, "in", mpath)

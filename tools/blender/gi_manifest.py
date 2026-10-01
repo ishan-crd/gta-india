@@ -5,8 +5,9 @@ W = os.path.join(OUT, "_work")
 order = ["SK_Player", "SK_ManBlue", "SK_ManRed", "SK_SareeWoman", "SK_ManKurta", "SK_ManKurta2", "SK_WomanSaree", "SK_Teen", "SK_OfficeWoman",
          # crowd batch 2 (ordinary Indian street people)
          "SK_ManPolo", "SK_ManStriped", "SK_ManShirt", "SK_OldManKurta", "SK_BoyKurta",
-         "SK_WomanPinkSaree", "SK_WomanMarathi", "SK_WomanSareeYellow"]
-AGE = {"SK_Teen": "teen", "SK_OldManKurta": "old", "SK_BoyKurta": "child", "SK_WomanSareeYellow": "middle_aged", "SK_ManPolo": "middle_aged"}
+         "SK_WomanPinkSaree", "SK_WomanMarathi", "SK_WomanSareeYellow", "SK_KidGreen", "SK_KidOrange", "SK_KidTeal", "SK_KidWhite", "SK_KidBare", "SK_PlayerDhoti"]
+AGE = {"SK_KidGreen": "child", "SK_KidOrange": "child", "SK_KidTeal": "child", "SK_KidWhite": "child", "SK_KidBare": "child",
+       "SK_Teen": "teen", "SK_OldManKurta": "old", "SK_BoyKurta": "child", "SK_WomanSareeYellow": "middle_aged", "SK_ManPolo": "middle_aged"}
 anims = ["A_Idle", "A_Walk", "A_Run", "A_Jump", "A_Fall", "A_Land", "A_Swim", "A_Tread", "A_SitIdle", "A_SitTalk", "A_PickUp", "A_Death"]
 chars = []
 for n in order:
