@@ -8,3 +8,4 @@ GTAIndia/*.code-workspace
 GTAIndia/Makefile
 GTAIndia/CMakeLists.txt
 .DS_Store
+__pycache__/
