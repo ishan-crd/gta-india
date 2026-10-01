@@ -36,6 +36,12 @@ public:
 
 	// Menu callbacks (from Slate).
 	void StartGame();
+	/** Play a city: starts right here if it's the loaded map, else loads it and starts on arrival. */
+	void StartCity(FName MapName);
+	/** Current map is the Mumbai / Dharavi one. */
+	bool IsMumbai() const;
+	/** Pause menu: toggle the monsoon (Dharavi). */
+	void ToggleWeather();
 	void ResumeGame();
 	void QuitToTitle();
 	void QuitGame();

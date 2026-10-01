@@ -277,7 +277,8 @@ TSharedRef<SWidget> SGIMenu::BuildTitle()
 			SNew(SBox).MinDesiredWidth(320.f)[MakeButton(L, F, 26)]
 		];
 	};
-	Add(LOCTEXT("Play", "KHELO  (Play)"), [O]() { if (O.IsValid()) O->StartGame(); });
+	Add(LOCTEXT("PlayVaranasi", "VARANASI  -  Ganga Paar Delivery"), [O]() { if (O.IsValid()) O->StartCity(TEXT("Varanasi")); });
+	Add(LOCTEXT("PlayMumbai", "MUMBAI  -  Dharavi ki Galiyan"), [O]() { if (O.IsValid()) O->StartCity(TEXT("Dharavi")); });
 	Add(LOCTEXT("Settings", "SETTINGS"), [O]() { if (O.IsValid()) O->OpenPage(EGIMenuPage::Settings); });
 	Add(LOCTEXT("Controls", "CONTROLS"), [O]() { if (O.IsValid()) O->OpenPage(EGIMenuPage::Controls); });
 	Add(LOCTEXT("Credits", "CREDITS"), [O]() { if (O.IsValid()) O->OpenPage(EGIMenuPage::Credits); });
@@ -338,6 +339,15 @@ TSharedRef<SWidget> SGIMenu::BuildPause()
 	Add(LOCTEXT("Resume", "Wapas Khelo (Resume)"), [O]() { if (O.IsValid()) O->ResumeGame(); });
 	Add(LOCTEXT("PSettings", "Settings"), [O]() { if (O.IsValid()) O->OpenPage(EGIMenuPage::Settings); });
 	Add(LOCTEXT("PControls", "Controls"), [O]() { if (O.IsValid()) O->OpenPage(EGIMenuPage::Controls); });
+	if (O.IsValid() && O->IsMumbai())
+	{
+		Add(LOCTEXT("PWeather", "Mausam badlo  (Dhoop / Baarish)"), [O]() { if (O.IsValid()) O->ToggleWeather(); });
+		Add(LOCTEXT("PToVaranasi", "Shehar badlo: Varanasi"), [O]() { if (O.IsValid()) O->StartCity(TEXT("Varanasi")); });
+	}
+	else
+	{
+		Add(LOCTEXT("PToMumbai", "Shehar badlo: Mumbai (Dharavi)"), [O]() { if (O.IsValid()) O->StartCity(TEXT("Dharavi")); });
+	}
 	Add(LOCTEXT("PTitle", "Main Menu"), [O]() { if (O.IsValid()) O->QuitToTitle(); });
 	Add(LOCTEXT("PQuit", "Quit Game"), [O]() { if (O.IsValid()) O->QuitGame(); });
 	return MakePanel(LOCTEXT("Paused", "RUKO! (Paused)"), Body, 520.f);

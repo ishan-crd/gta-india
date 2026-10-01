@@ -1,4 +1,5 @@
 #include "GIHUD.h"
+#include "GIRiver.h"
 #include "GIAssetSettings.h"
 #include "GIBike.h"
 #include "GIGameUserSettings.h"
@@ -245,6 +246,15 @@ void AGIHUD::DrawStats(const AGIPlayerCharacter* Player, float S)
 	const float X = Canvas->ClipX - W - 32.f * S;
 	float Y = 30.f * S;
 
+	// Clock (GTA style): the day starts at 09:30 and runs one game minute every 4 seconds.
+	{
+		const int32 Minutes = 9 * 60 + 30 + FMath::FloorToInt(GetWorld()->GetTimeSeconds() / 4.f);
+		const FString Clock = FString::Printf(TEXT("%02d:%02d"), (Minutes / 60) % 24, Minutes % 60);
+		const FVector2D CS = TextSize(Clock, BigFont, 1.0f * S);
+		Text(Clock, X + W - CS.X, Y - 4.f * S, BigFont, 1.0f * S, FLinearColor::White);
+		Y += CS.Y + 6.f * S;
+	}
+
 	// Health bar.
 	const float Frac = FMath::Clamp(DisplayedHealth / FMath::Max(Player->MaxHealth, 1.f), 0.f, 1.f);
 	const bool bPoisoned = Player->IsSwimming();
@@ -363,7 +373,9 @@ void AGIHUD::DrawMinimap(const AGIPlayerCharacter* Player, float S)
 
 	// Ring + map.
 	Disc(Center, Radius + 5.f * S, FLinearColor(0.f, 0.f, 0.f, 0.7f), 48);
-	Disc(Center, Radius, FLinearColor(0.1f, 0.24f, 0.36f, 0.95f), 48); // river blue under the map
+	// River blue under the map in Varanasi (the river is transparent in the capture); concrete grey elsewhere.
+	const bool bRiverMap = AGIRiver::Get(this) != nullptr;
+	Disc(Center, Radius, bRiverMap ? FLinearColor(0.1f, 0.24f, 0.36f, 0.95f) : FLinearColor(0.22f, 0.22f, 0.22f, 0.95f), 48);
 	if (MinimapMID)
 	{
 		FCanvasTileItem Tile(Center - FVector2D(Radius, Radius), MinimapMID->GetRenderProxy(), FVector2D(Radius * 2.f, Radius * 2.f));

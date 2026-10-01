@@ -2,6 +2,7 @@
 #include "GIAssetSettings.h"
 #include "GIPlayerCharacter.h"
 #include "GIBike.h"
+#include "GIDharavi.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -69,16 +70,90 @@ void AGIMission::BeginPlay()
 	{
 		Marker->SetVisibility(false);
 	}
+	if (IsTour())
+	{
+		ObjectiveIndex = 0;
+		RefreshMarker();
+		return;
+	}
 	SetStage(EGIMissionStage::ToPickup);
+}
+
+void AGIMission::RefreshMarker()
+{
+	FVector Target;
+	const bool bHas = GetTarget(Target);
+	Marker->SetVisibility(bHas && Marker->GetMaterial(0) != nullptr);
+	if (bHas)
+	{
+		Marker->SetWorldLocation(Target - FVector(0, 0, 20.f));
+	}
+}
+
+void AGIMission::TickTour(AGIPlayerCharacter* Player, const FVector& P)
+{
+	if (!Objectives.IsValidIndex(ObjectiveIndex))
+	{
+		return;
+	}
+	const FGIObjective& O = Objectives[ObjectiveIndex];
+	bool bDone = false;
+	switch (O.Kind)
+	{
+	case EGIObjectiveKind::Reach:
+	case EGIObjectiveKind::Monsoon:
+		bDone = FVector::Dist2D(P, O.Location) < O.Radius;
+		break;
+	case EGIObjectiveKind::Chai:
+		bDone = Player->bDidChai;
+		break;
+	case EGIObjectiveKind::ReturnBall:
+		bDone = Player->bReturnedBall;
+		break;
+	}
+	if (!bDone)
+	{
+		return;
+	}
+	if (O.Kind == EGIObjectiveKind::Monsoon)
+	{
+		if (AGIWeather* W = AGIWeather::Get(this))
+		{
+			W->SetRaining(true);
+		}
+	}
+	if (O.Reward > 0)
+	{
+		Player->AddMoney(O.Reward);
+		if (USoundBase* S = UGIAssetSettings::Get().Cash.LoadSynchronous())
+		{
+			UGameplayStatics::PlaySound2D(this, S);
+		}
+	}
+	if (!O.DoneBanner.IsEmpty())
+	{
+		ShowBanner(FText::FromString(O.DoneBanner), 4.f);
+	}
+	++ObjectiveIndex;
+	RefreshMarker();
 }
 
 FText AGIMission::GetTitle() const
 {
+	if (IsTour())
+	{
+		return FText::FromString(TourTitle);
+	}
 	return LOCTEXT("MissionTitle", "Mission: [Ganga Paar Delivery]");
 }
 
 FText AGIMission::GetObjective() const
 {
+	if (IsTour())
+	{
+		return Objectives.IsValidIndex(ObjectiveIndex) ? FText::FromString(Objectives[ObjectiveIndex].Text)
+			: LOCTEXT("TourDone", "Dharavi ki galiyan aapki! Ghoomte raho.");
+	}
 	switch (Stage)
 	{
 	case EGIMissionStage::ToPickup: return LOCTEXT("ObjPickup", "Sharma Bhojnalaya se order uthao.");
@@ -91,6 +166,15 @@ FText AGIMission::GetObjective() const
 
 bool AGIMission::GetTarget(FVector& Out) const
 {
+	if (IsTour())
+	{
+		if (Objectives.IsValidIndex(ObjectiveIndex))
+		{
+			Out = Objectives[ObjectiveIndex].Location;
+			return true;
+		}
+		return false;
+	}
 	switch (Stage)
 	{
 	case EGIMissionStage::ToPickup: Out = PickupLocation; return true;
@@ -152,6 +236,11 @@ void AGIMission::Tick(float DeltaSeconds)
 	// Gentle pulse on the marker.
 	const float Pulse = 1.f + 0.06f * FMath::Sin(GetWorld()->GetTimeSeconds() * 3.f);
 	Marker->SetWorldScale3D(FVector(2.4f * Pulse, 2.4f * Pulse, 1.6f));
+	if (IsTour())
+	{
+		TickTour(Player, P);
+		return;
+	}
 
 	switch (Stage)
 	{

@@ -16,7 +16,31 @@ enum class EGIMissionStage : uint8
 	Delivered,
 };
 
-/** "Ganga Paar Delivery": pick up food in town, cross the Ganga, deliver at Ramnagar Ghat. */
+UENUM(BlueprintType)
+enum class EGIObjectiveKind : uint8
+{
+	Reach,        // walk to Location (Radius)
+	Chai,         // buy a cutting chai at a tapri
+	ReturnBall,   // throw the kids' cricket ball back
+	Monsoon,      // reach Location: the monsoon breaks
+};
+
+/** One step of a walk-around mission (used by the Dharavi map). */
+USTRUCT(BlueprintType)
+struct FGIObjective
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mission") FString Text;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mission") FString DoneBanner;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mission") EGIObjectiveKind Kind = EGIObjectiveKind::Reach;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mission") FVector Location = FVector::ZeroVector;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mission") float Radius = 400.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mission") int32 Reward = 0;
+};
+
+/** "Ganga Paar Delivery" (Varanasi), or - when Objectives is filled - a chain of walk-around objectives
+ *  (Dharavi: chai at the tapri, the kids' ball, the main road as the monsoon breaks). */
 UCLASS()
 class GTAINDIA_API AGIMission : public AActor
 {
@@ -32,6 +56,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mission") float FarBankY = -15000.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mission") float TimeLimit = 420.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mission") int32 BaseReward = 150;
+	/** Walk-around mode: title + objective chain instead of the delivery. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mission") FString TourTitle;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mission") TArray<FGIObjective> Objectives;
 
 	/** Slow dolly shot behind the title menu. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Title") FVector TitleCamStart = FVector(-6000.f, -9000.f, 2500.f);
@@ -69,4 +96,8 @@ private:
 	float BannerTime = 0.f;
 	float BannerDuration = 1.f;
 	int32 OrdersDone = 0;
+	int32 ObjectiveIndex = 0;
+	bool IsTour() const { return Objectives.Num() > 0; }
+	void TickTour(class AGIPlayerCharacter* Player, const FVector& P);
+	void RefreshMarker();
 };

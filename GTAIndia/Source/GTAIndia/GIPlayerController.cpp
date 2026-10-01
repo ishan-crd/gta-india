@@ -7,6 +7,8 @@
 #include "GIMission.h"
 #include "GIPlayerCharacter.h"
 #include "GITrain.h"
+#include "GIDharavi.h"
+#include "GameFramework/GameModeBase.h"
 #include "GICharacterMovement.h"
 #include "SGIMenu.h"
 #include "Camera/CameraActor.h"
@@ -77,15 +79,26 @@ void AGIPlayerController::BeginPlay()
 	}
 	ShowMenu(EGIMenuPage::Title);
 	LoadShots();
+	// Arrived here from the city picker: skip the title and play.
+	if (const AGameModeBase* GM = GetWorld()->GetAuthGameMode())
+	{
+		if (UGameplayStatics::HasOption(GM->OptionsString, TEXT("autostart")))
+		{
+			StartGame();
+		}
+	}
 
 	const UGIAssetSettings& AS = UGIAssetSettings::Get();
 	auto Amb = [this](USoundBase* S) -> UAudioComponent*
 	{
 		return S ? UGameplayStatics::SpawnSound2D(this, S, 0.f, 1.f, 0.f, nullptr, false, false) : nullptr;
 	};
-	AmbRiver = Amb(AS.AmbRiver.LoadSynchronous());
 	AmbCity = Amb(AS.AmbCity.LoadSynchronous());
-	AmbBells = Amb(AS.TempleBells.LoadSynchronous());
+	if (!IsMumbai())
+	{
+		AmbRiver = Amb(AS.AmbRiver.LoadSynchronous());
+		AmbBells = Amb(AS.TempleBells.LoadSynchronous());
+	}
 }
 
 void AGIPlayerController::LoadShots()
@@ -132,6 +145,10 @@ void AGIPlayerController::LoadShots()
 		{
 			S.Loc.X = F(2, 3);
 		}
+		else if (S.Kind == TEXT("city"))
+		{
+			S.Program = T.IsValidIndex(2) ? T[2] : TEXT("Dharavi");
+		}
 		else if (S.Kind == TEXT("player") || S.Kind == TEXT("climb") || S.Kind == TEXT("dive"))
 		{
 			S.Loc = FVector(F(2, 0), F(3, 0), F(4, 0));
@@ -140,11 +157,17 @@ void AGIPlayerController::LoadShots()
 		Shots.Add(S);
 	}
 	UE_LOG(LogTemp, Display, TEXT("GIShots: loaded %d shots from %s"), Shots.Num(), *File);
-	if (Shots.Num() > 0)
+	// After a "city" shot travelled here, carry on with the shots that follow it.
+	int32 From = 0;
+	if (const AGameModeBase* GM = GetWorld()->GetAuthGameMode())
 	{
-		ShotIndex = 0;
+		From = UGameplayStatics::GetIntOption(GM->OptionsString, TEXT("shotsfrom"), 0);
+	}
+	if (Shots.IsValidIndex(From))
+	{
+		ShotIndex = From;
 		ShotTimer = 0.f;
-		BeginShot(Shots[0]);
+		BeginShot(Shots[From]);
 	}
 }
 
@@ -283,6 +306,19 @@ void AGIPlayerController::BeginShot(const FGIShot& Shot)
 	else if (Shot.Kind == TEXT("title"))
 	{
 		QuitToTitle();
+	}
+	else if (Shot.Kind == TEXT("city"))
+	{
+		// Travel like the menu's city picker does, then continue the list there.
+		UGameplayStatics::OpenLevel(this, FName(*Shot.Program), true, FString::Printf(TEXT("autostart?shotsfrom=%d"), ShotIndex + 1));
+	}
+	else if (Shot.Kind == TEXT("rain") || Shot.Kind == TEXT("sun"))
+	{
+		// Same view as the previous shot, with the weather switched instantly.
+		if (AGIWeather* W = AGIWeather::Get(this))
+		{
+			W->SetRainingInstant(Shot.Kind == TEXT("rain"));
+		}
 	}
 	else if (Shot.Kind == TEXT("pause") || Shot.Kind == TEXT("settings"))
 	{
@@ -685,6 +721,32 @@ void AGIPlayerController::StartGame()
 	{
 		C->ApplyUserSettings();
 	}
+}
+
+bool AGIPlayerController::IsMumbai() const
+{
+	return GetWorld() && GetWorld()->GetMapName().Contains(TEXT("Dharavi"));
+}
+
+void AGIPlayerController::StartCity(FName MapName)
+{
+	const bool bHere = GetWorld()->GetMapName().EndsWith(MapName.ToString());
+	if (bHere)
+	{
+		StartGame();
+		return;
+	}
+	SetPause(false);
+	UGameplayStatics::OpenLevel(this, MapName, true, TEXT("autostart"));
+}
+
+void AGIPlayerController::ToggleWeather()
+{
+	if (AGIWeather* W = AGIWeather::Get(this))
+	{
+		W->SetRaining(!W->IsRaining());
+	}
+	ResumeGame();
 }
 
 void AGIPlayerController::ResumeGame()
