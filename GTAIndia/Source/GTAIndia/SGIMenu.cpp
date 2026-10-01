@@ -535,8 +535,8 @@ TSharedRef<SWidget> SGIMenu::BuildSettings()
 	// Gameplay
 	Row(MakeSectionHeader(LOCTEXT("SecGame", "Camera & Controls")));
 	Row(MakeCycler(LOCTEXT("FOV", "Field of View"),
-		[GS]() { return FText::AsNumber(FMath::RoundToInt(GS() ? GS()->FieldOfView : 90.f)); },
-		[this, GS](int32 Dir) { if (UGIGameUserSettings* S = GS()) { S->FieldOfView = FMath::Clamp(S->FieldOfView + Dir * 5.f, 70.f, 115.f); Changed(); } }));
+		[GS]() { return FText::AsNumber(FMath::RoundToInt(GS() ? GS()->FieldOfView : 75.f)); },
+		[this, GS](int32 Dir) { if (UGIGameUserSettings* S = GS()) { S->FieldOfView = FMath::Clamp(S->FieldOfView + Dir * 5.f, 60.f, 115.f); Changed(); } }));
 	Row(MakeCycler(LOCTEXT("Sens", "Look Sensitivity"),
 		[GS]() { return FText::FromString(FString::Printf(TEXT("%.2f"), GS() ? GS()->MouseSensitivity : 1.f)); },
 		[this, GS](int32 Dir) { if (UGIGameUserSettings* S = GS()) { S->MouseSensitivity = FMath::Clamp(S->MouseSensitivity + Dir * (S->MouseSensitivity < 0.5f || (Dir < 0 && S->MouseSensitivity <= 0.5f) ? 0.05f : 0.1f), 0.05f, 3.f); Changed(); } }));

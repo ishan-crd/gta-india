@@ -36,7 +36,8 @@ AGIPlayerCharacter::AGIPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = DefaultArmLength;
-	CameraBoom->SocketOffset = FVector(0.f, 45.f, 55.f);
+	// Close GTA-style chase framing: head height, slightly over the right shoulder.
+	CameraBoom->SocketOffset = FVector(0.f, 32.f, 78.f);
 	CameraBoom->bUsePawnControlRotation = true;
 	CameraBoom->bEnableCameraLag = true;
 	CameraBoom->CameraLagSpeed = 12.f;
@@ -150,8 +151,18 @@ void AGIPlayerCharacter::BeginPlay()
 
 void AGIPlayerCharacter::ApplyUserSettings()
 {
-	if (const UGIGameUserSettings* Settings = UGIGameUserSettings::Get())
+	if (UGIGameUserSettings* Settings = UGIGameUserSettings::Get())
 	{
+		if (Settings->CameraVersion < 1)
+		{
+			// New over-the-shoulder framing: a tighter lens than the old 90 default.
+			Settings->CameraVersion = 1;
+			if (Settings->FieldOfView >= 89.f)
+			{
+				Settings->FieldOfView = 75.f;
+			}
+			Settings->SaveSettings();
+		}
 		FollowCamera->SetFieldOfView(Settings->FieldOfView);
 		BaseFOV = Settings->FieldOfView;
 	}
@@ -274,7 +285,7 @@ void AGIPlayerCharacter::UpdateCameraFeel(float DeltaSeconds)
 	FollowCamera->SetFieldOfView(FMath::FInterpTo(FollowCamera->FieldOfView, BaseFOV + (bSprinting ? 6.f : 0.f), DeltaSeconds, 4.f));
 	// Fade the player out when the camera is squeezed against them (tight spots on the ghats).
 	const float CamDist = FVector::Dist(FollowCamera->GetComponentLocation(), GetActorLocation() + FVector(0, 0, 40.f));
-	const bool bHide = CamDist < 85.f && !IsRiding();
+	const bool bHide = CamDist < 60.f && !IsRiding();
 	if (bHide != bOwnerHidden)
 	{
 		bOwnerHidden = bHide;
@@ -409,7 +420,7 @@ void AGIPlayerCharacter::UpdateAnimation(float DeltaSeconds)
 		}
 	}
 
-	const float WantArm = bSwim ? DefaultArmLength + 80.f : DefaultArmLength;
+	const float WantArm = bSwim ? DefaultArmLength + 110.f : DefaultArmLength;
 	CameraBoom->TargetArmLength = FMath::FInterpTo(CameraBoom->TargetArmLength, WantArm, DeltaSeconds, 3.f);
 }
 

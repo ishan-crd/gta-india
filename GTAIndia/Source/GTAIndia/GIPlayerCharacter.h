@@ -103,7 +103,7 @@ private:
 	float InteractionTimer = 0.f;
 	FQuat MeshBaseRotation = FQuat::Identity;
 	FVector MeshBaseLocation = FVector::ZeroVector;
-	float DefaultArmLength = 380.f;
+	float DefaultArmLength = 255.f;
 	bool bWasSwimming = false;
 	bool bCameraUnderwater = false;
 	float LastYaw = 0.f;

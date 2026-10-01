@@ -40,8 +40,8 @@ AGIBike::AGIBike()
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(Collision);
-	CameraBoom->TargetArmLength = 560.f;
-	CameraBoom->SocketOffset = FVector(0.f, 0.f, 160.f);
+	CameraBoom->TargetArmLength = 440.f;
+	CameraBoom->SocketOffset = FVector(0.f, 0.f, 125.f);
 	CameraBoom->bUsePawnControlRotation = true;
 	CameraBoom->bEnableCameraLag = true;
 	CameraBoom->CameraLagSpeed = 8.f;

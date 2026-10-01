@@ -35,7 +35,9 @@ public:
 	UPROPERTY(Config) bool bMotionBlur = true;
 	UPROPERTY(Config) bool bFilmGrain = false;
 	UPROPERTY(Config) bool bVolumetricFog = true;
-	UPROPERTY(Config) float FieldOfView = 90.f;
+	UPROPERTY(Config) float FieldOfView = 75.f;
+	/** Bumped when the default camera changes so saved settings pick up the new framing once. */
+	UPROPERTY(Config) int32 CameraVersion = 0;
 	UPROPERTY(Config) float MouseSensitivity = 1.f;
 	UPROPERTY(Config) bool bInvertY = false;
 	UPROPERTY(Config) bool bShowFPS = false;

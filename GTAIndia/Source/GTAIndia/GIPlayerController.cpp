@@ -275,7 +275,7 @@ void AGIPlayerController::BeginShot(const FGIShot& Shot)
 			if (It->GetRoofPointNear(Near, 5000.f, Roof))
 			{
 				C->TeleportTo(Roof + FVector(0, 0, 100.f), FRotator(0.f, 0.f, 0.f));
-				SetControlRotation(FRotator(-15.f, 60.f, 0.f));
+				SetControlRotation(FRotator(-12.f, -35.f, 0.f));   // ahead and towards the river, like the clip
 			}
 			break;
 		}
