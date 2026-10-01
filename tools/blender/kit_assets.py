@@ -971,4 +971,6 @@ def registry():
     add('Steps_Railing_5m', 'props', asset_steps_railing, 'origin = bottom-centre; runs along X', 'Steel pipe railing, 1 m high, 6 posts.')
     add('Flag_Pole_Saffron', 'props', asset_flag_pole, 'origin = pole base', '7 m bamboo pole with saffron pennant.')
     add('Water_Tank_Rooftop', 'props', asset_water_tank, 'origin = stand base centre', 'Black plastic (M_WindowDark) ribbed tank on a rusty stand.')
+    import kit_village
+    kit_village.register(add)
     return R
