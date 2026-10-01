@@ -10,6 +10,16 @@ World cross-section (river -> inland), matching the clip: far-bank old city and 
 near ghat steps | sandstone parapet with domed kiosks | railway | dusty road | tin-shed stalls |
 low village houses | fields. Driving along +X the village is on your left, train and river on your right.
 
+### Mumbai: Dharavi ki Galiyan
+
+The second city (pick it on the title screen, or "Shehar badlo" in the pause menu). Dharavi in the
+morning sun: a concrete gateway off the busy main road into narrow gallis of sky-blue shanties with
+laundry overhead, rusty corrugated alleys, 3-4 storey chawls, a pottery / recycling corner. Kids play
+gully cricket (return their ball when it rolls to you), the chai-wallah pours a cutting chai (E, Rs 10,
++10 HP), autos and scooters fill the road, and on the main road the monsoon breaks: rain, mirror-wet
+streets, neon signs, umbrellas (toggle the weather from the pause menu).
+Built by `tools/ue/05b_build_dharavi.py` from the Dharavi kit (`tools/blender/kit_dharavi.py`).
+
 ## Layout
 
 | Path | What |
@@ -41,6 +51,9 @@ tools/pc/ue_python_editor.sh tools/ue/08_char_lods.py    # crowd LODs
 tools/pc/ue_python.sh tools/ue/09_detail.py              # debris, wires, grass, signboards
 tools/pc/ue_python.sh tools/ue/10_variety.py             # outfit colours, saree variants, underwater murk
 tools/pc/ue_python.sh tools/ue/15_reimport_player.py     # only after rebuilding SK_Player in Blender
+python3 tools/ue/make_dharavi_textures.py                # rain streaks + neon sign textures (system python)
+tools/pc/ue_python.sh tools/ue/17_dharavi_materials.py   # weather MPC, wet streets, rain + neon materials
+tools/pc/ue_python_editor.sh tools/ue/05b_build_dharavi.py  # the Mumbai map
 tools/pc/package.sh                             # Shipping build -> ~/gta-india/build
 ```
 
