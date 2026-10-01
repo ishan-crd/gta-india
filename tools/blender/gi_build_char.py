@@ -15,6 +15,7 @@ ap.add_argument("--gender", default="male"); ap.add_argument("--template", actio
 ap.add_argument("--recolor", action="store_true"); ap.add_argument("--maxtris", type=int, default=120000)
 ap.add_argument("--targettris", type=int, default=100000)
 ap.add_argument("--drop-mats", default="", help="comma list: drop source meshes whose materials are all in it (e.g. opaque glasses)")
+ap.add_argument("--yellow-slots", default="", help="comma list of source materials (e.g. outfit_top) whose whole base texture becomes delivery-yellow")
 ap.add_argument("--darken-green", default="", help="comma list of source materials whose base texture has green-dominant pixels (bad hair dye) -> near-black hair")
 a = ap.parse_args(sys.argv[sys.argv.index("--") + 1:])
 
@@ -306,6 +307,22 @@ def darken_green(img, dst):
     return out
 
 
+def garment_to_yellow(img, dst):
+    """Whole garment texture -> delivery-company yellow, keeping its folds / seams / grime (from luminance)."""
+    w, h = img.size
+    px = np.empty(w * h * 4, dtype=np.float32); img.pixels.foreach_get(px); px = px.reshape(-1, 4)
+    lum = px[:, 0] * 0.3 + px[:, 1] * 0.55 + px[:, 2] * 0.15
+    ref = float(np.percentile(lum, 80)) + 1e-4
+    shade = np.clip(lum / ref, 0.15, 1.15) ** 0.85
+    base = np.array([0.95, 0.70, 0.06], dtype=np.float32)
+    px[:, :3] = np.clip(base[None, :] * shade[:, None], 0, 1)
+    out = bpy.data.images.new(os.path.basename(dst), w, h, alpha=True)
+    out.pixels.foreach_set(px.ravel())
+    out.filepath_raw = dst; out.file_format = 'PNG'; out.save()
+    print("garment_to_yellow", os.path.basename(dst))
+    return out
+
+
 def recolor_yellow(img, dst):
     w, h = img.size
     px = np.empty(w * h * 4, dtype=np.float32); img.pixels.foreach_get(px); px = px.reshape(-1, 4)
@@ -368,6 +385,12 @@ for slot in body.material_slots:
             if role == "base" and orig in a.darken_green.split(","):
                 dst = os.path.join(TEXDIR, f"T_{SHORT}_{orig}_BaseColor.png".replace(" ", "_"))
                 newimg = darken_green(img, dst)
+                newimg.colorspace_settings.name = 'sRGB'
+                n.image = newimg
+                img = newimg
+            elif role == "base" and orig in a.yellow_slots.split(","):
+                dst = os.path.join(TEXDIR, f"T_{SHORT}_{orig}_BaseColor_Yellow.png")
+                newimg = garment_to_yellow(img, dst)
                 newimg.colorspace_settings.name = 'sRGB'
                 n.image = newimg
                 img = newimg
