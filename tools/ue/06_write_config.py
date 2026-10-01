@@ -31,7 +31,8 @@ def main():
     ap.add_argument("--bike", default="BikePulsar150")
     ap.add_argument("--bike-yaw", type=float, default=0.0)
     ap.add_argument("--bike-scale", type=float, default=1.0)
-    ap.add_argument("--train", default="TrainIndian,TrainCoachLHB,TrainIndian")
+    ap.add_argument("--train", default="Train_EMU_Car")
+    ap.add_argument("--train-engine", default="Train_EMU_Cab")
     ap.add_argument("--train-yaw", type=float, default=0.0)
     ap.add_argument("--box-bone", default="Spine2")
     ap.add_argument("--box-offset", default="(X=0.000000,Y=-6.000000,Z=124.000000)")
@@ -98,10 +99,18 @@ def main():
         lines.append(f"BikeMesh={obj(bike)}")
     lines.append(f"BikeMeshYaw={args.bike_yaw:.6f}")
     lines.append(f"BikeMeshScale={args.bike_scale:.6f}")
+    def train_path(t):
+        for cand in (f"/Game/GTAIndia/Kit/SM_{t}", f"/Game/GTAIndia/Props/{t}/SM_{t}"):
+            if exists(cand):
+                return cand
+        return None
     for t in args.train.split(","):
-        train = f"/Game/GTAIndia/Props/{t}/SM_{t}"
-        if exists(train):
+        train = train_path(t)
+        if train:
             lines.append(f"+TrainCarMeshes={obj(train)}")
+    eng = train_path(args.train_engine) if args.train_engine else None
+    if eng:
+        lines.append(f"TrainEngineMesh={obj(eng)}")
     lines.append(f"TrainMeshYaw={args.train_yaw:.6f}")
     for key, p in (("MinimapMaterial", "/Game/GTAIndia/Materials/M_Minimap"), ("WaterMaterial", "/Game/GTAIndia/Materials/M_Water"),
                    ("MarkerMaterial", "/Game/GTAIndia/Materials/M_Marker"),

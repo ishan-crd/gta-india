@@ -13,9 +13,11 @@ PROP_SRC = f"{ASSETS}/props"
 KIT_DIR = f"{ROOT}/Kit"
 PROP_DIR = f"{ROOT}/Props"
 MI_DIR = f"{ROOT}/Materials/Instances"
+# GI_ONLY=name,name,... limits the import to those kit pieces / props (names without the SM_ prefix).
+ONLY = {n for n in os.environ.get("GI_ONLY", "").split(",") if n}
 
 # Props that should not use Nanite (translucent parts / small / moving)
-NO_NANITE = {"AutoRickshaw", "AutoRickshaw2", "BikePulsar150", "BikePulsar135", "TrainCoachLHB", "TrainIndian", "TrainAnim",
+NO_NANITE = {"Train_EMU_Car", "Train_EMU_Cab", "AutoRickshaw", "AutoRickshaw2", "BikePulsar150", "BikePulsar135", "TrainCoachLHB", "TrainIndian", "TrainAnim",
              "BoatSF", "BoatOld", "BoatWooden", "Zebu", "Zebu2", "Buffalo"}
 # Props that should block the player
 PROP_COLLISION = {"HinduTemple", "TemplesSet", "KiranaShop", "BhelpuriShop", "HouseOld", "TemplePillar", "Nandi",
@@ -76,6 +78,8 @@ def assign_slot_materials(mesh):
 def import_kit():
     ensure_dir(KIT_DIR)
     files = sorted(f for f in os.listdir(KIT_SRC) if f.lower().endswith(".fbx")) if os.path.isdir(KIT_SRC) else []
+    if ONLY:
+        files = [f for f in files if f[:-4] in ONLY]
     tasks = [import_task(os.path.join(KIT_SRC, f), KIT_DIR, fbx_options(False), name="SM_" + f[:-4]) for f in files]
     run_tasks(tasks)
     for f in files:
@@ -95,6 +99,8 @@ def import_props():
     tasks = []
     names = []
     for name, info in manifest.items():
+        if ONLY and name not in ONLY:
+            continue
         path = info["file"]
         if not os.path.exists(path):
             continue

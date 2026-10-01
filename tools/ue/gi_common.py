@@ -54,6 +54,13 @@ SLOT_TEXTURES = {
     "M_Thatch": "reed_roof_04",
     "M_Ballast": "gravel_floor_02",
     "M_Steel": "rusty_metal",
+    "M_TrainWhite": "dirty_concrete",
+    "M_TrainPurple": "dirty_concrete",
+    "M_TrainRoof": "dirty_concrete",
+    "M_GroundLitter": "leaf_scattered_gravel",
+    "M_VillageGround": "dry_mud_field_001",
+    "M_FlowerDirt": "flower_scattered_dirt",
+    "M_MuddyTracks": "muddy_tracks",
 }
 
 # Extra per-slot tweaks: tint (linear RGB), uv scale, roughness scale, two-sided
@@ -64,6 +71,10 @@ SLOT_TWEAKS = {
     "M_PlasterRed": {"tint": (1.0, 0.8, 0.75)},
     "M_Riverbed": {"tint": (0.75, 0.68, 0.6)},
     "M_Steel": {"rough": 0.8},
+    "M_TrainWhite": {"tint": (1.12, 1.1, 1.05), "uv": 0.5},
+    "M_TrainPurple": {"tint": (0.42, 0.2, 0.75), "uv": 0.5},
+    "M_TrainRoof": {"tint": (0.42, 0.41, 0.4), "uv": 0.5, "rough": 0.7},
+    "M_GroundLitter": {"tint": (0.95, 0.85, 0.7)},
 }
 
 SOLID_SLOTS = {

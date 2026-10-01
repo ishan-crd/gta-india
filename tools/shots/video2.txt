@@ -1,0 +1,8 @@
+w1_road_train cam -21000 7300 1420 -3 2
+w2_train_roof train
+w3_roof_to_river cam -6000 5900 1950 -14 -55
+w4_player_road player -13600 7650 1310 0 -4
+w5_player_ghat_top player -2500 4700 1300 -90 -8
+w6_swim player -1000 -7000 60 -90 -4
+w7_far_ghats cam -1500 -9000 500 2 -90
+w8_village_lane player -9000 10700 1310 0 -4
