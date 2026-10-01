@@ -121,9 +121,33 @@ void AGITrain::BuildRiders()
 		UStaticMeshComponent* Car = Cars[CarIdx];
 		const FBox CarBox = Car->Bounds.GetBox(); // world
 		const FVector LocalCenter = GetActorTransform().InverseTransformPosition(CarBox.GetCenter());
-		const float Roof = GetActorTransform().InverseTransformPosition(CarBox.Max).Z;
+		// Real roof surface (the bounds include vents, footsteps and the cab pantograph): trace the car.
+		auto RoofZAt = [this, Car, &CarBox](float LocalX, float LocalY, float& OutZ) -> bool
+		{
+			const FVector W = GetActorTransform().TransformPosition(FVector(LocalX, LocalY, 0.f));
+			FHitResult Hit;
+			FCollisionQueryParams Q(SCENE_QUERY_STAT(GITrainRoof), true);
+			if (Car->LineTraceComponent(Hit, FVector(W.X, W.Y, CarBox.Max.Z + 200.f), FVector(W.X, W.Y, CarBox.Min.Z), Q))
+			{
+				OutZ = GetActorTransform().InverseTransformPosition(Hit.ImpactPoint).Z;
+				return true;
+			}
+			return false;
+		};
+		float Roof = GetActorTransform().InverseTransformPosition(CarBox.Max).Z;
+		RoofZAt(LocalCenter.X + 120.f, LocalCenter.Y, Roof);
 		const float HalfLen = CarBox.GetExtent().X - 150.f;
-		const float HalfWid = CarBox.GetExtent().Y;
+		// Body half-width at roof level: walk in from the bounds until the trace hits a surface near roof height.
+		float HalfWid = CarBox.GetExtent().Y;
+		for (float Y = CarBox.GetExtent().Y; Y > 60.f; Y -= 8.f)
+		{
+			float Z;
+			if (RoofZAt(LocalCenter.X + 120.f, LocalCenter.Y + Y, Z) && Z > Roof - 70.f)
+			{
+				HalfWid = Y;
+				break;
+			}
+		}
 
 		for (int32 k = 0; k < PerCar; ++k)
 		{
@@ -153,23 +177,20 @@ void AGITrain::BuildRiders()
 			{
 				// Sitting on the roof edge, legs dangling outside.
 				const float Side = Rand.FRand() < 0.5f ? -1.f : 1.f;
-				Pos = FVector(LocalCenter.X + XAlong, LocalCenter.Y + Side * (HalfWid - 25.f), Roof - (UGIAnimInstance::GetSitPelvisHeight() - 8.f));
-				Yaw = Side > 0.f ? 90.f : -90.f;
+				// On the roof edge facing out, legs hanging over the side (like the clip).
+				Pos = FVector(LocalCenter.X + XAlong, LocalCenter.Y + Side * (HalfWid - 32.f), Roof);
+				Yaw = (Side > 0.f ? 90.f : -90.f) + Rand.FRandRange(-20.f, 20.f);
 			}
 			else if (Roll < 0.72f)
 			{
 				// Sitting in the middle of the roof.
-				Pos = FVector(LocalCenter.X + XAlong, LocalCenter.Y + Rand.FRandRange(-HalfWid * 0.4f, HalfWid * 0.4f), Roof - (UGIAnimInstance::GetSitPelvisHeight() - 8.f));
+				Pos = FVector(LocalCenter.X + XAlong, LocalCenter.Y + Rand.FRandRange(-HalfWid * 0.4f, HalfWid * 0.4f), Roof);
 				Yaw = Rand.FRandRange(-180.f, 180.f);
 				// Packed rows like the reference: mostly sitting/chatting, some standing.
 				const float Lane = FMath::RoundToFloat(Rand.FRandRange(-1.f, 1.f) * 1.4f) / 1.4f;
 				Pos.Y = LocalCenter.Y + Lane * HalfWid * 0.45f + Rand.FRandRange(-12.f, 12.f);
 				const float R2 = Rand.FRand();
-				Mode = R2 < 0.18f ? EGIPoseMode::Locomotion : (R2 < 0.6f ? EGIPoseMode::SitTalk : EGIPoseMode::Sit);
-				if (Mode == EGIPoseMode::Locomotion)
-				{
-					Pos.Z = Roof;
-				}
+				Mode = R2 < 0.12f ? EGIPoseMode::Locomotion : (R2 < 0.2f ? EGIPoseMode::Talk : (R2 < 0.6f ? EGIPoseMode::SitTalk : EGIPoseMode::Sit));
 			}
 			else
 			{
@@ -189,6 +210,14 @@ void AGITrain::BuildRiders()
 					Yaw = (Side > 0.f ? 90.f : -90.f) + Rand.FRandRange(-35.f, 35.f);
 					Mode = Rand.FRand() < 0.5f ? EGIPoseMode::Talk : EGIPoseMode::Locomotion;
 				}
+			}
+			if (Mode == EGIPoseMode::Sit || Mode == EGIPoseMode::SitTalk || ((Mode == EGIPoseMode::Locomotion || Mode == EGIPoseMode::Talk) && Pos.Z >= Roof - 1.f))
+			{
+				float Z = Roof;
+				RoofZAt(Pos.X, Pos.Y, Z);
+				const bool bSit = Mode == EGIPoseMode::Sit || Mode == EGIPoseMode::SitTalk;
+				// Seated: pelvis on the roof (same rule as people sitting on the ghats). Standing: feet on it.
+				Pos.Z = Z + (bSit ? -(UGIAnimInstance::GetSitPelvisHeight() - 12.f) : 0.f);
 			}
 			// Mesh faces +Y in its own space, so add the standard -90 yaw.
 			const FRotator MeshRot(0.f, Yaw - 90.f, 0.f);
