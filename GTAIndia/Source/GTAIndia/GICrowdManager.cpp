@@ -1,4 +1,5 @@
 #include "GICrowdManager.h"
+#include "GIAnimBudget.h"
 #include "GIAssetSettings.h"
 #include "GIGameUserSettings.h"
 #include "GIPlayerCharacter.h"
@@ -25,6 +26,7 @@ AGICrowdManager::AGICrowdManager()
 void AGICrowdManager::BeginPlay()
 {
 	Super::BeginPlay();
+	GIAnimBudget::EnableForWorld(GetWorld());
 	Rebuild();
 }
 
@@ -90,7 +92,7 @@ USkeletalMeshComponent* AGICrowdManager::SpawnComp(FRandomStream& Rand, FName* O
 	{
 		*OutGender = Chosen->Tag;
 	}
-	USkeletalMeshComponent* C = NewObject<USkeletalMeshComponent>(this);
+	USkeletalMeshComponent* C = GIAnimBudget::NewPersonComponent(this);
 	C->SetupAttachment(RootComponent);
 	C->SetUsingAbsoluteLocation(true);
 	C->SetUsingAbsoluteRotation(true);

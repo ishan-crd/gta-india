@@ -1,4 +1,5 @@
 #include "GITraffic.h"
+#include "GIAnimBudget.h"
 #include "GIPlayerCharacter.h"
 #include "GameFramework/Character.h"
 #include "GIGameUserSettings.h"
@@ -84,7 +85,7 @@ void AGITraffic::AddRider(FVehicle& V, FRandomStream& Rand, const FVector& Pelvi
 	{
 		return;
 	}
-	USkeletalMeshComponent* P = NewObject<USkeletalMeshComponent>(this);
+	USkeletalMeshComponent* P = GIAnimBudget::NewPersonComponent(this);
 	P->SetupAttachment(RootComponent);
 	P->SetUsingAbsoluteLocation(true);
 	P->SetUsingAbsoluteRotation(true);

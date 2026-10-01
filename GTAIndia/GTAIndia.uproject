@@ -15,6 +15,7 @@
 		{ "Name": "PythonScriptPlugin", "Enabled": true, "TargetAllowList": [ "Editor" ] },
 		{ "Name": "EditorScriptingUtilities", "Enabled": true, "TargetAllowList": [ "Editor" ] },
 		{ "Name": "IKRig", "Enabled": true },
+		{ "Name": "AnimationBudgetAllocator", "Enabled": true },
 		{ "Name": "Water", "Enabled": true },
 		{ "Name": "Interchange", "Enabled": true },
 		{ "Name": "ModelingToolsEditorMode", "Enabled": true, "TargetAllowList": [ "Editor" ] }

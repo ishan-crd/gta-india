@@ -1,4 +1,5 @@
 #include "GIBike.h"
+#include "GIAnimBudget.h"
 #include "GIAnimInstance.h"
 #include "GIAssetSettings.h"
 #include "GIPlayerCharacter.h"
@@ -122,7 +123,7 @@ void AGIBike::BuildPassengers()
 		{
 			continue;
 		}
-		USkeletalMeshComponent* P = NewObject<USkeletalMeshComponent>(this);
+		USkeletalMeshComponent* P = GIAnimBudget::NewPersonComponent(this);
 		P->SetupAttachment(Seat);
 		P->RegisterComponent();
 		P->SetSkeletalMesh(Mesh);

@@ -1,4 +1,5 @@
 #include "GITrain.h"
+#include "GIAnimBudget.h"
 #include "GIPlayerCharacter.h"
 #include "GIAnimInstance.h"
 #include "GIAssetSettings.h"
@@ -157,7 +158,7 @@ void AGITrain::BuildRiders()
 			{
 				continue;
 			}
-			USkeletalMeshComponent* P = NewObject<USkeletalMeshComponent>(this);
+			USkeletalMeshComponent* P = GIAnimBudget::NewPersonComponent(this);
 			P->SetupAttachment(RootComponent);
 			P->RegisterComponent();
 			P->SetSkeletalMesh(Mesh);
