@@ -42,6 +42,8 @@ PROPS = {
     "Zebu": ("sketchfab/zebu/scene.gltf", 2.1, "long", True, 0),
     "Zebu2": ("sketchfab/zebu2/scene.gltf", 2.1, "long", True, 0),
     "Buffalo": ("sketchfab/buffalo/scene.gltf", 2.5, "long", True, 0),
+    "CarWagonR": ("sketchfab/car_wagonr/scene.gltf", 3.6, "long", True, 0),
+    "CarNano": ("sketchfab/car_nano/scene.gltf", 3.1, "long", True, 0),
 }
 
 # Poly Haven models are already real-world scale (metres) and Z-up after glTF import.

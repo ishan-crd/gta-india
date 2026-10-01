@@ -255,7 +255,7 @@ def build_near_top(sc, props, spots, lanes):
         spots.append({"loc": (gx, y, TOP_Z), "yaw": R.uniform(-180, 180), "mode": R.choice(["Talk", "Talk", "Locomotion", "SitTalk"]),
                       "priority": 0.5 + 0.5 * math.exp(-((gx / 9000.0) ** 2))})
     for n in range(22):
-        props.append((R.choice(["Zebu", "Zebu2", "Buffalo"]), R.uniform(GHAT_X0, GHAT_X1), R.uniform(4450, 5250), None, R.uniform(0, 360), 1.0))
+        props.append((R.choice(["Zebu", "Zebu", "Buffalo"]), R.uniform(GHAT_X0, GHAT_X1), R.uniform(4450, 5250), None, R.uniform(0, 360), 1.0))
 
 
 def build_far_bank(sc, props, spots, lanes):
@@ -349,7 +349,7 @@ def build_rail_and_road(sc, props):
         props.append((R.choice(["AutoRickshaw", "AutoRickshaw2", "BikePulsar150", "BikePulsar135"]), R.uniform(GHAT_X0, GHAT_X1),
                       R.choice([6900, 7900]) + R.uniform(-60, 60), TOP_Z + 5, R.choice([0, 180]) + R.uniform(-15, 15), 1.0))
     for n in range(40):
-        props.append((R.choice(["Zebu", "Zebu", "Zebu2", "Buffalo"]), R.uniform(GHAT_X0, GHAT_X1),
+        props.append((R.choice(["Zebu", "Zebu", "Zebu", "Buffalo"]), R.uniform(GHAT_X0, GHAT_X1),
                       R.choice([R.uniform(6300, 6900), R.uniform(7900, 8400), R.uniform(10500, 10900)]), None, R.uniform(0, 360), 1.0))
 
 
@@ -666,7 +666,8 @@ def build_gameplay(lanes, spots):
 
     traffic = spawn(unreal.GITraffic, unreal.Vector(0, 0, 0), label="Traffic")
     lanes_t = []
-    for y, d, n in ((ROAD_Y - 230, 1.0, 10), (ROAD_Y + 230, -1.0, 10)):
+    # India keeps left: heading +X the left-hand side is +Y.
+    for y, d, n in ((ROAD_Y + 230, 1.0, 11), (ROAD_Y - 230, -1.0, 11)):
         tl = unreal.GITrafficLane()
         tl.set_editor_property("y", float(y))
         tl.set_editor_property("z", float(TOP_Z + 4))
@@ -676,8 +677,20 @@ def build_gameplay(lanes, spots):
     traffic.set_editor_property("lanes", lanes_t)
     traffic.set_editor_property("min_x", float(GHAT_X0 - 8000))
     traffic.set_editor_property("max_x", float(GHAT_X1 + 8000))
-    traffic.set_editor_property("vehicle_meshes", [m for m in (mesh("AutoRickshaw"), mesh("AutoRickshaw2"), mesh("BikePulsar135"),
-                                                               mesh("BikePulsar150")) if m])
+    # (mesh, yaw so its front faces the travel direction): AutoRickshaw2 is modelled facing -X.
+    fleet = [("AutoRickshaw", 0.0), ("AutoRickshaw2", 180.0), ("AutoRickshaw", 0.0), ("BikePulsar135", 0.0), ("BikePulsar150", 0.0),
+             ("BikePulsar135", 0.0), ("CarWagonR", 0.0), ("CarNano", 0.0)]
+    fleet = [(mesh(n), y) for n, y in fleet if mesh(n)]
+    traffic.set_editor_property("vehicle_meshes", [m for m, _ in fleet])
+    traffic.set_editor_property("vehicle_mesh_yaws", [float(y) for _, y in fleet])
+    # Parked vehicles you can drive (F): an auto by the dhaba and a WagonR down the road.
+    for n, yaw, loc in (("AutoRickshaw", 0.0, unreal.Vector(-11200, 7650, TOP_Z + 90)), ("CarWagonR", 0.0, unreal.Vector(-9500, 7700, TOP_Z + 90))):
+        m = mesh(n)
+        if m:
+            v = spawn(unreal.GIBike, loc, unreal.Rotator(0, 0, 0), label="Drivable_" + n)
+            v.set_editor_property("mesh_override", m)
+            v.set_editor_property("mesh_yaw_override", yaw)
+            v.set_editor_property("four_wheeler", True)
 
     mission = spawn(unreal.GIMission, unreal.Vector(0, 0, 0), label="Mission")
     ghat_z_at = trace_z(GHAT_ENTRY.x, GHAT_ENTRY.y) or ghat_z(GHAT_ENTRY.y)

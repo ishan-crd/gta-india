@@ -63,7 +63,31 @@ void AGIBike::OnConstruction(const FTransform& Transform)
 void AGIBike::ApplyMeshSettings()
 {
 	const UGIAssetSettings& S = UGIAssetSettings::Get();
-	if (UStaticMesh* Mesh = S.BikeMesh.LoadSynchronous())
+	if (MeshOverride)
+	{
+		// Size the collision to the vehicle and put the driver's pelvis where the seat is.
+		const FBox B = MeshOverride->GetBoundingBox();
+		const FVector Size = FRotator(0.f, MeshYawOverride, 0.f).RotateVector(B.GetSize()).GetAbs();
+		const bool bCar = Size.Z > 140.f && Size.Y > 140.f && Size.X > 280.f;
+		const float HalfZ = bFourWheeler ? 55.f : 50.f;
+		Collision->SetBoxExtent(FVector(Size.X * 0.5f - 5.f, FMath::Max(32.f, Size.Y * 0.5f - 8.f), HalfZ));
+		WheelBase = Size.X * 0.32f;
+		const float PelvisAboveGround = bCar ? 62.f : (bFourWheeler ? 86.f : 88.f);
+		Seat->SetRelativeLocation(FVector(bCar ? 8.f : (bFourWheeler ? 30.f : -10.f), bCar ? 34.f : 0.f, PelvisAboveGround - (HalfZ + GroundClearance)));
+		Body->SetStaticMesh(MeshOverride);
+		Body->SetRelativeRotation(FRotator(0.f, MeshYawOverride, 0.f));
+		Body->SetRelativeLocation(FVector(0.f, 0.f, -(HalfZ + GroundClearance)));
+		Body->SetRelativeScale3D(FVector(1.f));
+		if (bFourWheeler)
+		{
+			CameraBoom->TargetArmLength = bCar ? 620.f : 540.f;
+			CameraBoom->SocketOffset = FVector(0.f, 0.f, bCar ? 170.f : 150.f);
+			MaxSpeed = bCar ? 2500.f : 1500.f;
+			Acceleration = bCar ? 800.f : 560.f;
+			MaxYawRate = bCar ? 62.f : 70.f;
+		}
+	}
+	else if (UStaticMesh* Mesh = S.BikeMesh.LoadSynchronous())
 	{
 		Body->SetStaticMesh(Mesh);
 		Body->SetRelativeRotation(FRotator(0.f, S.BikeMeshYaw, 0.f));
@@ -104,12 +128,12 @@ void AGIBike::BuildPassengers()
 		P->SetSkeletalMesh(Mesh);
 		P->SetAnimInstanceClass(UGIAnimInstance::StaticClass());
 		P->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		// Stack: first behind the rider, then climbing up on shoulders.
-		const FVector Offset = i == 0 ? FVector(-38.f, 0.f, 0.f) : FVector(-30.f + 4.f * i, 0.f, 72.f * i);
+		// Pillion riders one behind the other on the seat.
+		const FVector Offset(-38.f - 30.f * i, 0.f, 4.f * i);
 		P->SetRelativeLocationAndRotation(Offset + FVector(0.f, 0.f, -UGIAnimInstance::GetSitPelvisHeight()), FRotator(0.f, -90.f, 0.f));
 		if (UGIAnimInstance* Anim = Cast<UGIAnimInstance>(P->GetAnimInstance()))
 		{
-			Anim->Params.Mode = (i == StackedPassengers - 1 && i > 0) ? EGIPoseMode::SitArmsOut : EGIPoseMode::Sit;
+			Anim->Params.Mode = EGIPoseMode::Sit;
 			Anim->Params.MeshBaseRotation = FRotator(0.f, -90.f, 0.f).Quaternion();
 			Anim->Params.TimeOffset = 1.3f * i;
 		}
@@ -216,7 +240,8 @@ void AGIBike::Tick(float DeltaSeconds)
 	const float SpeedAlpha = FMath::Clamp(FMath::Abs(Speed) / 400.f, 0.f, 1.f);
 	const float HighSpeedDamp = 1.f - 0.5f * FMath::Clamp(FMath::Abs(Speed) / MaxSpeed, 0.f, 1.f);
 	const float YawDelta = SteerSmoothed * MaxYawRate * SpeedAlpha * HighSpeedDamp * Dt * FMath::Sign(Speed == 0.f ? 1.f : Speed);
-	const float TargetLean = SteerSmoothed * 26.f * FMath::Clamp(FMath::Abs(Speed) / 1400.f, 0.f, 1.f);
+	// Bikes lean into the turn; autos / cars roll slightly outwards instead.
+	const float TargetLean = SteerSmoothed * (bFourWheeler ? -2.5f : 26.f) * FMath::Clamp(FMath::Abs(Speed) / 1400.f, 0.f, 1.f);
 	Lean = FMath::FInterpTo(Lean, TargetLean, Dt, 5.f);
 
 	FRotator Rot = GetActorRotation();
@@ -242,8 +267,8 @@ void AGIBike::Tick(float DeltaSeconds)
 	// Ground follow using front / rear wheel contact points.
 	const FVector Loc = GetActorLocation();
 	FHitResult Front, Rear;
-	const bool bF = GroundAt(Loc + Fwd * 65.f, Front);
-	const bool bR = GroundAt(Loc - Fwd * 65.f, Rear);
+	const bool bF = GroundAt(Loc + Fwd * WheelBase, Front);
+	const bool bR = GroundAt(Loc - Fwd * WheelBase, Rear);
 	const float HalfH = Collision->GetScaledBoxExtent().Z;
 	if (bF || bR)
 	{
@@ -261,7 +286,7 @@ void AGIBike::Tick(float DeltaSeconds)
 		}
 		if (bF && bR)
 		{
-			const float TargetPitch = FMath::RadiansToDegrees(FMath::Atan2(Front.ImpactPoint.Z - Rear.ImpactPoint.Z, 130.f));
+			const float TargetPitch = FMath::RadiansToDegrees(FMath::Atan2(Front.ImpactPoint.Z - Rear.ImpactPoint.Z, 2.f * WheelBase));
 			Pitch = FMath::FInterpTo(Pitch, TargetPitch, Dt, 10.f);
 		}
 	}

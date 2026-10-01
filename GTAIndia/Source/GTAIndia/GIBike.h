@@ -6,6 +6,7 @@
 
 class UBoxComponent;
 class UStaticMeshComponent;
+class UStaticMesh;
 class USkeletalMeshComponent;
 class USpringArmComponent;
 class UCameraComponent;
@@ -13,8 +14,9 @@ class AGIPlayerCharacter;
 class UAudioComponent;
 
 /**
- * Arcade motorbike. Kinematic: ground-following traces, swept collision, lean. The player
- * character sits on it; optional "stacked" passengers reproduce the famous overloaded-bike look.
+ * Arcade vehicle the player drives: the motorbike by default, or an auto-rickshaw / car when spawned
+ * with a mesh override and bFourWheeler (no lean, wider body, driver seat). Kinematic: ground-following
+ * traces, swept collision.
  */
 UCLASS()
 class GTAINDIA_API AGIBike : public APawn
@@ -31,8 +33,13 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Bike") TObjectPtr<UCameraComponent> Camera;
 	UPROPERTY(VisibleAnywhere, Category = "Bike") TObjectPtr<UAudioComponent> EngineAudio;
 
-	/** Extra people stacked behind / on top of the rider. */
-	UPROPERTY(EditAnywhere, Category = "Bike") int32 StackedPassengers = 3;
+	/** Extra people riding pillion behind the rider. */
+	UPROPERTY(EditAnywhere, Category = "Bike") int32 StackedPassengers = 0;
+	/** Drive a different vehicle (auto, car) with this mesh instead of the configured bike. */
+	UPROPERTY(EditAnywhere, Category = "Bike") TObjectPtr<UStaticMesh> MeshOverride;
+	UPROPERTY(EditAnywhere, Category = "Bike") float MeshYawOverride = 0.f;
+	/** Autos / cars: no lean, wider collision, driver seat further forward (cars: right-hand drive). */
+	UPROPERTY(EditAnywhere, Category = "Bike") bool bFourWheeler = false;
 	UPROPERTY(EditAnywhere, Category = "Bike") float MaxSpeed = 2200.f;
 	UPROPERTY(EditAnywhere, Category = "Bike") float MaxReverseSpeed = 450.f;
 	UPROPERTY(EditAnywhere, Category = "Bike") float Acceleration = 750.f;
@@ -74,4 +81,5 @@ private:
 	float VerticalVelocity = 0.f;
 	float Pitch = 0.f;
 	float LastLookTime = -100.f;
+	float WheelBase = 65.f;
 };

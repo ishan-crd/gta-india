@@ -6,6 +6,7 @@
 
 class UStaticMesh;
 class UStaticMeshComponent;
+class USkeletalMeshComponent;
 
 /** One straight traffic lane along X (vehicles wrap around at the ends). */
 USTRUCT(BlueprintType)
@@ -34,9 +35,16 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traffic") TArray<FGITrafficLane> Lanes;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traffic") TArray<TObjectPtr<UStaticMesh>> VehicleMeshes;
+	/** Per-mesh yaw so the model's front faces the travel direction (same order as VehicleMeshes). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traffic") TArray<float> VehicleMeshYaws;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traffic") float MinX = -52000.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traffic") float MaxX = 52000.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traffic") float Speed = 900.f;
+
+	/** Is there a vehicle the player could take within MaxDist? */
+	bool HasVehicleNear(const FVector& Location, float MaxDist) const;
+	/** Pull the nearest vehicle out of traffic (its people get off) so the player can drive it. */
+	bool TakeVehicle(const FVector& Location, float MaxDist, FTransform& OutTransform, UStaticMesh*& OutMesh, float& OutMeshYaw, bool& bOutFourWheeler);
 
 protected:
 	virtual void BeginPlay() override;
@@ -51,7 +59,15 @@ private:
 		float Speed = 0.f;
 		float MaxSpeed = 0.f;
 		float Wobble = 0.f;
+		float MeshYaw = 0.f;
+		bool bFourWheeler = false;
+		TArray<USkeletalMeshComponent*> Riders;
+		TArray<FVector> RiderOffsets;      // in the travel frame (X forward), from the ground under the vehicle
 	};
+	void AddRiders(FVehicle& V, FRandomStream& Rand);
+	void AddRider(FVehicle& V, FRandomStream& Rand, const FVector& PelvisOffset, bool bDriver);
+	float SignificanceTimer = 0.f;
+	UPROPERTY() TArray<TObjectPtr<USkeletalMeshComponent>> RiderComps;
 	TArray<FVehicle> Vehicles;
 	float HitCooldown = 0.f;
 	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> Comps;

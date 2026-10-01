@@ -7,6 +7,12 @@
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
+#include "Camera/PlayerCameraManager.h"
+#include "GameFramework/PlayerController.h"
+#include "GIAnimInstance.h"
+#include "GIAssetSettings.h"
 
 AGITraffic::AGITraffic()
 {
@@ -32,7 +38,8 @@ void AGITraffic::BeginPlay()
 		const int32 N = FMath::Max(1, FMath::RoundToInt(Lanes[L].Count * Density));
 		for (int32 i = 0; i < N; ++i)
 		{
-			UStaticMesh* Mesh = VehicleMeshes[Rand.RandRange(0, VehicleMeshes.Num() - 1)];
+			const int32 MeshIdx = Rand.RandRange(0, VehicleMeshes.Num() - 1);
+			UStaticMesh* Mesh = VehicleMeshes[MeshIdx];
 			if (!Mesh)
 			{
 				continue;
@@ -51,12 +58,139 @@ void AGITraffic::BeginPlay()
 			V.Comp = C;
 			V.Lane = L;
 			V.X = FMath::Lerp(MinX, MaxX, (i + Rand.FRand() * 0.6f) / N);
-			V.MaxSpeed = Speed * Rand.FRandRange(0.65f, 1.25f);
+			const FVector Size = Mesh->GetBoundingBox().GetSize();
+			const bool bBike = Size.Y < 110.f;
+			V.bFourWheeler = !bBike;
+			V.MeshYaw = VehicleMeshYaws.IsValidIndex(MeshIdx) ? VehicleMeshYaws[MeshIdx] : 0.f;
+			V.MaxSpeed = Speed * Rand.FRandRange(0.65f, 1.25f) * (bBike ? 1.15f : 1.f);
 			V.Speed = V.MaxSpeed;
 			V.Wobble = Rand.FRandRange(0.f, 10.f);
+			AddRiders(V, Rand);
 			Vehicles.Add(V);
 		}
 	}
+}
+
+void AGITraffic::AddRider(FVehicle& V, FRandomStream& Rand, const FVector& PelvisOffset, bool bDriver)
+{
+	const TArray<FGICharacterLook>& Looks = UGIAssetSettings::Get().PedestrianLooks;
+	if (Looks.Num() == 0)
+	{
+		return;
+	}
+	const FGICharacterLook& Look = Looks[Rand.RandRange(0, Looks.Num() - 1)];
+	USkeletalMesh* Mesh = Look.Mesh.LoadSynchronous();
+	if (!Mesh)
+	{
+		return;
+	}
+	USkeletalMeshComponent* P = NewObject<USkeletalMeshComponent>(this);
+	P->SetupAttachment(RootComponent);
+	P->SetUsingAbsoluteLocation(true);
+	P->SetUsingAbsoluteRotation(true);
+	P->RegisterComponent();
+	P->SetSkeletalMesh(Mesh);
+	P->SetAnimInstanceClass(UGIAnimInstance::StaticClass());
+	P->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	P->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered;
+	P->bEnableUpdateRateOptimizations = true;
+	UGIAssetSettings::ApplyLookVariety(P, Look, Rand);
+	if (UGIAnimInstance* Anim = Cast<UGIAnimInstance>(P->GetAnimInstance()))
+	{
+		Anim->Params.Mode = bDriver ? EGIPoseMode::RideBike : EGIPoseMode::Sit;
+		Anim->Params.MeshBaseRotation = FRotator(0.f, -90.f, 0.f).Quaternion();
+		Anim->Params.TimeOffset = Rand.FRandRange(0.f, 6.f);
+	}
+	V.Riders.Add(P);
+	V.RiderOffsets.Add(PelvisOffset - FVector(0.f, 0.f, UGIAnimInstance::GetSitPelvisHeight()));
+	RiderComps.Add(P);
+}
+
+void AGITraffic::AddRiders(FVehicle& V, FRandomStream& Rand)
+{
+	const FVector Size = V.Comp->GetStaticMesh()->GetBoundingBox().GetSize();
+	if (!V.bFourWheeler)
+	{
+		// Bike: rider + often a pillion, sometimes a family of three (very Indian).
+		AddRider(V, Rand, FVector(-10.f, 0.f, 88.f), true);
+		if (Rand.FRand() < 0.6f)
+		{
+			AddRider(V, Rand, FVector(-46.f, 0.f, 92.f), false);
+		}
+		if (Rand.FRand() < 0.22f)
+		{
+			AddRider(V, Rand, FVector(-76.f, 0.f, 96.f), false);
+		}
+	}
+	else if (Size.Z > 140.f && Size.X > 280.f && Size.Y > 140.f)
+	{
+		// Car: right-hand drive, sometimes a passenger.
+		AddRider(V, Rand, FVector(8.f, 34.f, 62.f), true);
+		if (Rand.FRand() < 0.5f)
+		{
+			AddRider(V, Rand, FVector(8.f, -34.f, 62.f), false);
+		}
+	}
+	else
+	{
+		// Auto-rickshaw: driver up front, passengers squeezed on the back bench.
+		AddRider(V, Rand, FVector(30.f, 0.f, 86.f), true);
+		const int32 N = Rand.RandRange(1, 3);
+		for (int32 k = 0; k < N; ++k)
+		{
+			AddRider(V, Rand, FVector(-52.f, (k - (N - 1) * 0.5f) * 34.f, 80.f), false);
+		}
+	}
+}
+
+bool AGITraffic::HasVehicleNear(const FVector& Location, float MaxDist) const
+{
+	for (const FVehicle& V : Vehicles)
+	{
+		if (V.Comp && FVector::DistSquared(V.Comp->GetComponentLocation(), Location) < MaxDist * MaxDist)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool AGITraffic::TakeVehicle(const FVector& Location, float MaxDist, FTransform& OutTransform, UStaticMesh*& OutMesh, float& OutMeshYaw, bool& bOutFourWheeler)
+{
+	int32 Best = INDEX_NONE;
+	float BestD = MaxDist * MaxDist;
+	for (int32 i = 0; i < Vehicles.Num(); ++i)
+	{
+		const FVehicle& V = Vehicles[i];
+		const float D = V.Comp ? FVector::DistSquared(V.Comp->GetComponentLocation(), Location) : 1e18f;
+		if (D < BestD)
+		{
+			BestD = D;
+			Best = i;
+		}
+	}
+	if (Best == INDEX_NONE)
+	{
+		return false;
+	}
+	FVehicle& V = Vehicles[Best];
+	const float Dir = Lanes[V.Lane].Direction >= 0.f ? 1.f : -1.f;
+	OutTransform = FTransform(FRotator(0.f, Dir > 0.f ? 0.f : 180.f, 0.f), V.Comp->GetComponentLocation());
+	OutMesh = V.Comp->GetStaticMesh();
+	OutMeshYaw = V.MeshYaw;
+	bOutFourWheeler = V.bFourWheeler;
+	for (USkeletalMeshComponent* R : V.Riders)
+	{
+		if (R)
+		{
+			RiderComps.Remove(R);
+			R->DestroyComponent();
+		}
+	}
+	Comps.Remove(V.Comp);
+	V.Comp->DestroyComponent();
+	Vehicles.RemoveAt(Best);
+	return true;
 }
 
 void AGITraffic::Tick(float DeltaSeconds)
@@ -65,6 +199,35 @@ void AGITraffic::Tick(float DeltaSeconds)
 	const APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
 	const FVector P = Player ? Player->GetActorLocation() : FVector(1e9f);
 	const float Now = GetWorld()->GetTimeSeconds();
+
+	SignificanceTimer -= DeltaSeconds;
+	if (SignificanceTimer <= 0.f)
+	{
+		SignificanceTimer = 0.5f;
+		const APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+		if (PC && PC->PlayerCameraManager)
+		{
+			const FVector Cam = PC->PlayerCameraManager->GetCameraLocation();
+			const UGIGameUserSettings* GS = UGIGameUserSettings::Get();
+			const float ShadowDistSq = FMath::Square(GS ? GS->GetCrowdShadowDistanceCm() : 6000.f);
+			const float Cull = GS ? GS->GetCrowdCullDistanceCm() : 16000.f;
+			for (USkeletalMeshComponent* R : RiderComps)
+			{
+				if (R)
+				{
+					const bool bShadow = FVector::DistSquared(R->GetComponentLocation(), Cam) < ShadowDistSq;
+					if (R->CastShadow != bShadow)
+					{
+						R->SetCastShadow(bShadow);
+					}
+					if (!FMath::IsNearlyEqual(R->CachedMaxDrawDistance, Cull))
+					{
+						R->SetCachedMaxDrawDistance(Cull);
+					}
+				}
+			}
+		}
+	}
 
 	HitCooldown -= DeltaSeconds;
 	ACharacter* PlayerChar = UGameplayStatics::GetPlayerCharacter(this, 0);
@@ -121,6 +284,16 @@ void AGITraffic::Tick(float DeltaSeconds)
 			V.X = MaxX;
 		}
 		const float Sway = 18.f * FMath::Sin(Now * 0.7f + V.Wobble);
-		V.Comp->SetWorldLocationAndRotation(FVector(V.X, L.Y + Sway, L.Z), FRotator(0.f, Dir > 0.f ? 0.f : 180.f, 0.f));
+		const float TravelYaw = Dir > 0.f ? 0.f : 180.f;
+		const FVector VLoc(V.X, L.Y + Sway, L.Z);
+		V.Comp->SetWorldLocationAndRotation(VLoc, FRotator(0.f, TravelYaw + V.MeshYaw, 0.f));
+		const FRotator TravelRot(0.f, TravelYaw, 0.f);
+		for (int32 r = 0; r < V.Riders.Num(); ++r)
+		{
+			if (V.Riders[r])
+			{
+				V.Riders[r]->SetWorldLocationAndRotation(VLoc + TravelRot.RotateVector(V.RiderOffsets[r]), FRotator(0.f, TravelYaw - 90.f, 0.f));
+			}
+		}
 	}
 }

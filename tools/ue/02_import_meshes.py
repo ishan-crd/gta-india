@@ -20,7 +20,7 @@ ONLY = {n for n in os.environ.get("GI_ONLY", "").split(",") if n}
 NO_NANITE = {"Train_EMU_Car", "Train_EMU_Cab", "AutoRickshaw", "AutoRickshaw2", "BikePulsar150", "BikePulsar135", "TrainCoachLHB", "TrainIndian", "TrainAnim",
              "BoatSF", "BoatOld", "BoatWooden", "Zebu", "Zebu2", "Buffalo"}
 # Props that should block the player
-PROP_COLLISION = {"HinduTemple", "TemplesSet", "KiranaShop", "BhelpuriShop", "HouseOld", "TemplePillar", "Nandi",
+PROP_COLLISION = {"CarWagonR", "CarNano", "HinduTemple", "TemplesSet", "KiranaShop", "BhelpuriShop", "HouseOld", "TemplePillar", "Nandi",
                   "TrainCoachLHB", "TrainIndian", "TrainAnim", "AutoRickshaw", "AutoRickshaw2", "Zebu", "Zebu2", "Buffalo",
                   "BoatSF", "BoatOld", "BoatWooden"}
 
