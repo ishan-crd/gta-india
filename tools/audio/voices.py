@@ -66,12 +66,41 @@ LINES = [
     ("swim", "female", "हाय राम, डूब जाएगा!", "Haaye Ram, doob jaayega!"),
     # for the delivery guy
     ("ambient", "male", "ओए डिलीवरी वाले! मेरा खाना कब आएगा?", "Oye delivery waale! Mera khaana kab aayega?"),
+    # ---- Mumbai / Dharavi -------------------------------------------------------------------
+    ("mumbai", "male", "बाजू हटो! साइड दो!", "Baaju hato! Side do!"),
+    ("mumbai", "male", "क्या रे, किधर जा रहा है?", "Kya re, kidhar ja raha hai?"),
+    ("mumbai", "male", "अरे भिडू, सुन ना!", "Arre bhidu, sun na!"),
+    ("mumbai", "male", "ताज़ी सब्ज़ी! आज का बेस्ट भाव!", "Taazi sabzi! Aaj ka best bhaav!"),
+    ("mumbai", "male", "टमाटर, भिंडी, मिर्ची, ले लो!", "Tamatar, bhindi, mirchi, le lo!"),
+    ("mumbai", "male", "गणपति बाप्पा मोरया!", "Ganpati Bappa Morya!"),
+    ("mumbai", "male", "मंगल मूर्ति मोरया!", "Mangal Murti Morya!"),
+    ("mumbai", "male", "चल ना यार, लेट हो रहा है।", "Chal na yaar, late ho raha hai."),
+    ("mumbai", "male", "भाई, ये मुंबई है। यहाँ सब फास्ट है।", "Bhai, yeh Mumbai hai. Yahaan sab fast hai."),
+    ("mumbai", "male", "पाव भाजी खाएगा क्या?", "Pav bhaaji khaayega kya?"),
+    ("mumbai", "female", "अरे बाबा, बारिश आ रही है!", "Arre baba, baarish aa rahi hai!"),
+    ("mumbai", "female", "भैया, पानी की लाइन कब आएगी?", "Bhaiya, paani ki line kab aayegi?"),
+    ("mumbai", "female", "सब्ज़ी कितने की दी?", "Sabzi kitne ki di?"),
+    ("mumbai", "female", "छाता ले लो, बहुत तेज़ है!", "Chhaata le lo, bahut tez hai!"),
+    ("kids_ball", "kid", "भैया, बॉल वापस दो ना!", "Bhaiya, ball wapas do na!"),
+    ("kids_ball", "kid", "अंकल, बॉल फेंको!", "Uncle, ball phenko!"),
+    ("kids_ball", "kid", "ओ भाई, बॉल इधर! इधर!", "O bhai, ball idhar! Idhar!"),
+    ("kids_cheer", "kid", "येएए! थैंक यू भैया!", "Yayyy! Thank you bhaiya!"),
+    ("kids_cheer", "kid", "क्या थ्रो था! येएए!", "Kya throw tha! Yayyy!"),
+    ("kids_play", "kid", "आउट है! आउट!", "Out hai! Out!"),
+    ("kids_play", "kid", "चौका! चौका!", "Chauka! Chauka!"),
+    ("kids_play", "kid", "अब मेरी बैटिंग है!", "Ab meri batting hai!"),
+    ("player_chai", "player", "बॉस, एक कटिंग चाय देना! वो फेमस वाली।", "Boss, ek cutting chai dena! Woh famous waali."),
+    ("chai_vendor", "male", "ये लो भाई, गरम गरम कटिंग। दस रुपये।", "Ye lo bhai, garam garam cutting. Das rupaye."),
+    ("chai_call", "male", "चाय! गरम चाय! कटिंग चाय!", "Chai! Garam chai! Cutting chai!"),
+    ("chai_call", "male", "आओ भाई, बढ़िया चाय पियो!", "Aao bhai, badhiya chai piyo!"),
 ]
 
 # speaker variants (voice, pitch, rate)
 VARIANTS = {
     "male": [("hi-IN-MadhurNeural", "-12Hz", "+6%"), ("hi-IN-MadhurNeural", "+6Hz", "+12%"), ("hi-IN-MadhurNeural", "-25Hz", "-4%")],
     "female": [("hi-IN-SwaraNeural", "+0Hz", "+8%"), ("hi-IN-SwaraNeural", "-14Hz", "+2%")],
+    "kid": [("hi-IN-SwaraNeural", "+55Hz", "+14%"), ("hi-IN-MadhurNeural", "+85Hz", "+16%"), ("hi-IN-SwaraNeural", "+35Hz", "+10%")],
+    "player": [("hi-IN-MadhurNeural", "-6Hz", "+4%")],
 }
 
 

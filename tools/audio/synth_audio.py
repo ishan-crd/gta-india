@@ -211,7 +211,39 @@ def cash():
     return x
 
 
+def rain_loop(sec=20):
+    """Monsoon downpour: dense broadband hiss + heavier low roar + random close drops / gutter splashes."""
+    n = int(sec * SR)
+    hiss = fast_bp(rng.standard_normal(n), 900, 9000) * 0.55
+    roar = fast_lp(rng.standard_normal(n), 380) * 1.4
+    x = hiss + roar * slow_env(sec, 0.3, 0.35, seed=3)
+    drops = np.zeros(n)
+    for i in range(int(sec * 70)):
+        p = rng.integers(0, n - 2400)
+        d = np.exp(-np.arange(2400) / SR * rng.uniform(60, 180)) * rng.standard_normal(2400)
+        drops[p:p + 2400] += d * rng.uniform(0.04, 0.2)
+    x = x + fast_bp(drops, 1200, 7000)
+    return loopable(x, 1.5)
+
+
+def thunder(sec=7.0):
+    """Distant monsoon thunder: a crack, then a long rolling rumble."""
+    tt = t(sec)
+    n = len(tt)
+    crack = fast_bp(rng.standard_normal(n), 200, 3000) * np.exp(-tt * 9) * 0.6
+    rumble = fast_lp(rng.standard_normal(n), 90) * 3.0
+    env = np.minimum(1, tt / 0.25) * np.exp(-tt / 2.4) * (0.6 + 0.4 * np.sin(tt * 5.3) ** 2)
+    return crack + rumble * env
+
+
 if __name__ == "__main__":
+    import sys
+    only = set(sys.argv[1:])
+    if only:
+        gens = {"A_Rain": rain_loop, "S_Thunder": thunder}
+        for name in only:
+            write(name, gens[name]())
+        raise SystemExit(0)
     write("A_AmbRiver", river())
     write("A_AmbCity", city())
     write("A_TempleBells", temple_bells())
@@ -223,3 +255,5 @@ if __name__ == "__main__":
     write("S_SwimStroke", swim_stroke())
     write("S_UIClick", ui_click())
     write("S_Cash", cash())
+    write("A_Rain", rain_loop())
+    write("S_Thunder", thunder())
