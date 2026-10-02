@@ -26,7 +26,9 @@ Built by `tools/ue/05b_build_mumbai.py` from the Dharavi, Trial-lane and Mumbai 
 ### Story mission: Saraswati Kahan Hai?
 
 Mumbai opens with a story mission. Shankar arrives from his village to find his wife Saraswati, who stopped
-writing three months ago. Dawn in the blue lane, Lakshmi Tai at her door, the kids' cricket and Chhotu's
+writing three months ago. It begins at sunset on Marine Drive - Shankar alone on the sea wall above the
+tetrapods, the sun going down into the Arabian Sea, the Art Deco row and the bay curving to Malabar Hill -
+then the next morning: dawn in the blue lane, Lakshmi Tai at her door, the kids' cricket and Chhotu's
 shortcut through the gallis, Kamla Mausi at the sabzi mandi, Pappu's chai tapri on the main road, tailing
 Bhau's man Raghu to the Ganesh pandal (too close or too far and the mission fails), then a race through the
 monsoon night to the station platform before Bhau's men get there. GTA-style presentation: chapter cards,

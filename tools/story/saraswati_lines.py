@@ -13,7 +13,7 @@ Each scene: (speaker, listener, roman subtitle, devanagari for the voice, gestur
 
 VOICES = {   # edge-tts voice, pitch, rate
     "player": ("hi-IN-MadhurNeural", "-4Hz", "-4%"),
-    "vo": ("hi-IN-MadhurNeural", "-6Hz", "-10%"),
+    "vo": ("hi-IN-MadhurNeural", "-8Hz", "-14%"),
     "lakshmi": ("hi-IN-SwaraNeural", "-14Hz", "-8%"),
     "chhotu": ("hi-IN-MadhurNeural", "+62Hz", "+14%"),
     "kamla": ("hi-IN-SwaraNeural", "-24Hz", "+4%"),
@@ -24,15 +24,30 @@ VOICES = {   # edge-tts voice, pitch, rate
 }
 
 SCENES = {
-    "prologue": [
-        ("vo", "", "Saraswati... teen mahine ho gaye. Na koi phone, na koi chitthi.",
-         "सरस्वती... तीन महीने हो गए। न कोई फ़ोन, न कोई चिट्ठी।", "", "follow"),
-        ("vo", "", "Gaon mein sab kehte hain, Bambai logon ko nigal jaati hai. Main nahi maanta.",
-         "गाँव में सब कहते हैं, बम्बई लोगों को निगल जाती है। मैं नहीं मानता।", "", "high"),
-        ("vo", "", "Tumhari aakhri chitthi mein bas itna likha tha - Dharavi, neeli gali, Lakshmi Tai ka ghar.",
-         "तुम्हारी आख़िरी चिट्ठी में बस इतना लिखा था - धारावी, नीली गली, लक्ष्मी ताई का घर।", "", "follow"),
-        ("vo", "", "Main tumhe dhoondh ke rahunga.",
-         "मैं तुम्हें ढूँढ के रहूँगा।", "", "close"),
+    # sunset on Marine Drive: Shankar on the sea wall, thinking of her (cameras are placed in the level script)
+    "marine": [
+        ("vo", "", "Bambai... kehte hain yeh shehar kabhi nahi sota. Aaj mujhe bhi neend nahi aayegi.",
+         "बम्बई... कहते हैं ये शहर कभी नहीं सोता। आज मुझे भी नींद नहीं आएगी।", "", ""),
+        ("vo", "", "Saraswati ko samundar bahut pasand tha. Kehti thi, ek din tumhe Marine Drive le chalungi.",
+         "सरस्वती को समुंदर बहुत पसंद था। कहती थी, एक दिन तुम्हें मरीन ड्राइव ले चलूँगी।", "", ""),
+        ("vo", "", "Aaj main yahan hoon... aur woh nahi.",
+         "आज मैं यहाँ हूँ... और वो नहीं।", "", ""),
+        ("vo", "", "Gaon se jaate waqt usne mera haath pakad ke kaha tha - bas kuch mahine, Shankar. Thoda paisa jod loon, phir apna ghar banayenge.",
+         "गाँव से जाते वक़्त उसने मेरा हाथ पकड़ के कहा था - बस कुछ महीने, शंकर। थोड़ा पैसा जोड़ लूँ, फिर अपना घर बनाएँगे।", "", ""),
+        ("vo", "", "Teen mahine ho gaye. Na koi phone, na koi chitthi.",
+         "तीन महीने हो गए। न कोई फ़ोन, न कोई चिट्ठी।", "", ""),
+        ("vo", "", "Uski aakhri chitthi mein bas itna likha tha... Dharavi. Neeli gali. Lakshmi Tai ka ghar.",
+         "उसकी आख़िरी चिट्ठी में बस इतना लिखा था... धारावी। नीली गली। लक्ष्मी ताई का घर।", "", ""),
+        ("vo", "", "Log kehte hain, Bambai logon ko nigal jaati hai.",
+         "लोग कहते हैं, बम्बई लोगों को निगल जाती है।", "", ""),
+        ("vo", "", "Main nahi maanta. Main use dhoondh ke rahunga.",
+         "मैं नहीं मानता। मैं उसे ढूँढ के रहूँगा।", "", ""),
+        ("vo", "", "Kal subah... Dharavi jaake dhoondta hoon.",
+         "कल सुबह... धारावी जाके ढूँढता हूँ।", "", ""),
+    ],
+    "lane_arrive": [
+        ("vo", "", "Neeli gali... Lakshmi Tai ka ghar yahin kahin hoga.",
+         "नीली गली... लक्ष्मी ताई का घर यहीं कहीं होगा।", "", "follow"),
     ],
     "lakshmi": [
         ("player", "lakshmi", "Namaste Tai. Main Shankar... Saraswati ka pati. Gaon se aaya hoon.",

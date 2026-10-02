@@ -43,6 +43,12 @@ struct FGIStoryLine
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Story") EGIPoseMode Gesture = EGIPoseMode::Talk;
 	/** Camera: "" = over-the-shoulder onto the speaker, "two", "wide", "close", "follow", "high", "keep". */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Story") FName Shot;
+	/** Hand-placed camera (world): set CamFrom to use it; the lens dollies to CamTo over the line. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Story") FVector CamFrom = FVector::ZeroVector;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Story") FVector CamTo = FVector::ZeroVector;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Story") FVector CamLook = FVector::ZeroVector;
+	/** Lens for this line (0 = the default 52 degrees). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Story") float CamFov = 0.f;
 };
 
 /** A story character. */

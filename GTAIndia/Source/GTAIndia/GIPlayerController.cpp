@@ -542,8 +542,8 @@ void AGIPlayerController::TickSequence(const FGIShot& Shot)
 			TArray<FVector> Hints;
 			switch (St->GetBeatIndex())
 			{
-			case 5: Hints = { FVector(6000, 3350, 0), FVector(6000, -6600, 0) }; break;
-			case 8: Hints = { FVector(-500, 7120, 0), FVector(18500, 7120, 0), FVector(18500, 9300, 0), FVector(18500, 9850, 0),
+			case 6: Hints = { FVector(6000, 3350, 0), FVector(6000, -6600, 0) }; break;
+			case 9: Hints = { FVector(-500, 7120, 0), FVector(18500, 7120, 0), FVector(18500, 9300, 0), FVector(18500, 9850, 0),
 				FVector(17700, 10650, 0), FVector(18300, 10650, 0) }; break;
 			default: break;
 			}

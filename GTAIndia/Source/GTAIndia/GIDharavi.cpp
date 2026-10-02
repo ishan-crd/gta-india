@@ -797,7 +797,8 @@ void AGIWeather::Apply()
 		// sun: rises in the east at 6, peaks at noon (~72 deg), sets at 18:30
 		const float T = (Hour - 6.f) / 12.5f;
 		const float Elev = 72.f * FMath::Sin(T * PI);
-		Day = FMath::Clamp(Elev / 14.f, 0.f, 1.f);
+		// golden hour keeps a strong low sun until it touches the horizon
+		Day = FMath::Clamp((Elev + 1.5f) / 9.f, 0.f, 1.f);
 		Dusk = FMath::Clamp(1.f - FMath::Abs(Elev - 4.f) / 22.f, 0.f, 1.f) * (Elev > -6.f ? 1.f : 0.f);
 		Night = 1.f - FMath::SmoothStep(-7.f, 3.f, Elev);
 		if (ADirectionalLight* S = Sun.Get())
@@ -822,7 +823,7 @@ void AGIWeather::Apply()
 	}
 	if (ASkyLight* S = Sky.Get())
 	{
-		S->GetLightComponent()->SetIntensity(FMath::Lerp(SkyIntensity, SkyIntensity * 0.7f, R) * FMath::Lerp(0.16f, 1.f, FMath::Max(Day, 1.f - Night)));
+		S->GetLightComponent()->SetIntensity(FMath::Lerp(SkyIntensity, SkyIntensity * 0.7f, R) * FMath::Lerp(0.16f, 1.f, FMath::Max(Day, 1.f - Night)) * (1.f - 0.45f * Dusk));
 	}
 	if (AExponentialHeightFog* F = Fog.Get())
 	{

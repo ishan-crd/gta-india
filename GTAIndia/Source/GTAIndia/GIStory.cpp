@@ -440,6 +440,7 @@ void AGIStory::ApplyBeatSetup()
 		{
 			if (AGIPlayerCharacter* P = GetPlayer())
 			{
+				P->SetActorHiddenInGame(!C.bVisible);
 				const float Half = P->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 				P->SetActorLocationAndRotation(C.Location + FVector(0.f, 0.f, Half + 5.f), FRotator(0.f, C.Yaw, 0.f), false, nullptr, ETeleportType::TeleportPhysics);
 				if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
@@ -688,6 +689,10 @@ void AGIStory::StartLine(int32 Index)
 	{
 		SetActorMode(L.Speaker, L.Gesture);
 	}
+	if (SceneCam)
+	{
+		SceneCam->GetCameraComponent()->SetFieldOfView(L.CamFov > 1.f ? L.CamFov : 52.f);
+	}
 	PlaceCamera(L, 0.f);
 }
 
@@ -697,7 +702,13 @@ void AGIStory::PlaceCamera(const FGIStoryLine& L, float Alpha)
 	{
 		return;
 	}
-	if (Alpha <= 0.f)
+	if (Alpha <= 0.f && !L.CamFrom.IsZero())
+	{
+		CamFrom = L.CamFrom;
+		CamTo = L.CamTo.IsZero() ? L.CamFrom : L.CamTo;
+		CamLook = L.CamLook;
+	}
+	else if (Alpha <= 0.f)
 	{
 		const FName Speaker = L.Speaker == VoiceOverId ? PlayerId : L.Speaker;
 		const FName Listener = !L.Listener.IsNone() ? L.Listener

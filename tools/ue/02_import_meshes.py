@@ -58,7 +58,7 @@ def set_nanite(mesh, enabled, full_res_fallback=False):
     mesh.set_editor_property("nanite_settings", ns)
 
 
-SOLID_PREFIXES = ("Trial_House", "Shanty_", "Tenement_", "Shack_", "Tower_")
+SOLID_PREFIXES = ("Trial_House", "Shanty_", "Tenement_", "Shack_", "Tower_", "ArtDeco_")
 
 
 def set_complex_collision(mesh):

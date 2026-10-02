@@ -14,6 +14,7 @@
   * high-rise towers all round on the horizon.
 Coordinates in cm, ground at Z = 0; X runs east along the lanes, Y north (rail) / south (main road).
 """
+import math
 import os
 import random
 import sys
@@ -432,7 +433,7 @@ def build_main_road(sc, props, spots, lanes):
             lc = light.get_component_by_class(unreal.PointLightComponent)
             lc.set_editor_property("intensity", 0.0)
             lc.set_editor_property("attenuation_radius", 1800.0)
-            lc.set_editor_property("light_color", unreal.Color(170, 210, 255, 255))
+            lc.set_editor_property("light_color", unreal.Color(r=170, g=210, b=255, a=255))
             lc.set_editor_property("cast_shadows", False)
             lc.set_editor_property("visible", False)
     # footpath life
@@ -537,7 +538,7 @@ def build_link_roads(sc, props, spots, lanes):
                 lc = light.get_component_by_class(unreal.PointLightComponent)
                 lc.set_editor_property("intensity", 0.0)
                 lc.set_editor_property("attenuation_radius", 1800.0)
-                lc.set_editor_property("light_color", unreal.Color(255, 205, 150, 255))
+                lc.set_editor_property("light_color", unreal.Color(r=255, g=205, b=150, a=255))
                 lc.set_editor_property("cast_shadows", False)
                 lc.set_editor_property("visible", False)
             lanes.append({"start": (lx + side * (LINK_HALF + 200), LINK_Y0, 0), "end": (lx + side * (LINK_HALF + 200), LINK_Y1, 0),
@@ -575,7 +576,7 @@ def build_night_lights(lanes):
         lc.set_editor_property("intensity", 0.0)
         lc.set_editor_property("attenuation_radius", 850.0)
         lc.set_editor_property("source_radius", 4.0)
-        lc.set_editor_property("light_color", unreal.Color(*color, 255))
+        lc.set_editor_property("light_color", unreal.Color(r=color[0], g=color[1], b=color[2], a=255))
         lc.set_editor_property("cast_shadows", False)
         lc.set_editor_property("visible", False)
     n = 0
@@ -622,6 +623,198 @@ def build_skyline(sc):
     for i in range(25):
         tower(R.uniform(-48000, -33000), R.uniform(-12000, 14000), 90)       # west, past the road / track ends
         tower(R.uniform(33000, 48000), R.uniform(-12000, 14000), -90)         # east
+
+
+
+# ------------------------------------------------------------------------------------------ Marine Drive
+# A set piece away from Dharavi for the opening scene: the Queen's Necklace at sunset. Built in a local
+# frame (metres): the shore runs along +X, the sea is -Y, Z = walkway level; the frame is turned so the
+# sea faces the setting sun (the sun sets ~27 deg north of straight out to sea, like the reference shots).
+MD_ORIGIN = unreal.Vector(150000, 100000, 0)
+MD_YAW = 126.0
+MD_R = 1300.0          # radius of the bay's curve (m)
+MD_STRAIGHT = (-500.0, 400.0)
+MD_ARC_DEG = 105.0
+SHANKAR_MD = (60.0, -0.25, 0.02)
+
+
+def md_w(x, y, z=0.0):
+    """Local metres -> world cm."""
+    a = math.radians(MD_YAW)
+    X, Y = x * 100.0, y * 100.0
+    return unreal.Vector(MD_ORIGIN.x + X * math.cos(a) - Y * math.sin(a), MD_ORIGIN.y + X * math.sin(a) + Y * math.cos(a), MD_ORIGIN.z + z * 100.0)
+
+
+def vt(v):
+    return (v.x, v.y, v.z)
+
+
+def md_path(step):
+    """Points along the sea face: (x, y, yaw_local_deg, s) every `step` metres."""
+    out = []
+    x = MD_STRAIGHT[0]
+    s = 0.0
+    while x < MD_STRAIGHT[1]:
+        out.append((x, 0.0, 0.0, s))
+        x += step
+        s += step
+    arc = math.radians(MD_ARC_DEG) * MD_R
+    t = 0.0
+    while t < arc:
+        a = t / MD_R
+        out.append((MD_STRAIGHT[1] + MD_R * math.sin(a), -MD_R + MD_R * math.cos(a), -math.degrees(a), s))
+        t += step
+        s += step
+    return out
+
+
+def md_off(p, inland, z=0.0, along=0.0):
+    """Point offset from a path sample: `inland` metres along the land-side normal, `along` along the shore."""
+    x, y, yaw, _ = p
+    a = math.radians(yaw)
+    return (x + along * math.cos(a) - inland * math.sin(a), y + along * math.sin(a) + inland * math.cos(a), z)
+
+
+def build_marine_drive(sc, props, spots, lanes):
+    ny = MD_YAW
+    path10 = md_path(10.0)
+    for p in path10:
+        x, y, yaw, s = p
+        sc.add("MD_Seawall_10m", xf(*vt(md_w(x, y)), yaw + ny))
+        rx, ry, _ = md_off(p, 8.6)
+        sc.add("MD_Road_10m", xf(*vt(md_w(rx, ry)), yaw + ny))
+        # land under everything behind the road
+        for k, d in enumerate((45.0, 65.0, 85.0, 105.0, 125.0)):
+            gx, gy, _ = md_off(p, d)
+            sc.add("Ground_Tile_20m", unreal.Transform(location=md_w(gx, gy, -0.02), rotation=unreal.Rotator(0, 0, yaw + ny),
+                                                       scale=unreal.Vector(0.55, 1.0, 1.0)), mats=("MI_Concrete",))
+    # tetrapods: four deep near the scene, two rows further round the bay
+    for p in md_path(1.35):
+        x, y, yaw, s = p
+        near = s < 1500.0
+        rows = ((-1.1, -0.35), (-2.4, -1.0), (-3.7, -1.7), (-5.0, -2.45)) if near else ((-1.3, -0.5), (-2.8, -1.4))
+        if not near and R.random() < 0.45:
+            continue
+        for (off, z) in rows:
+            tx, ty, _ = md_off(p, off + R.uniform(-0.35, 0.35), along=R.uniform(-0.4, 0.4))
+            props.append(("Tetrapod", md_w(tx, ty).x, md_w(tx, ty).y, (z + R.uniform(-0.2, 0.15)) * 100.0,
+                          ("rot", R.uniform(0, 360), R.uniform(-60, 60), R.uniform(-60, 60)), R.uniform(0.9, 1.12)))
+    # Queen's Necklace lamps on the road side of the walkway, lit (warm sodium) along the near stretch
+    for p in md_path(32.0):
+        x, y, yaw, s = p
+        lx, ly, _ = md_off(p, 8.1)
+        props.append(("MD_Lamp", md_w(lx, ly).x, md_w(lx, ly).y, 0, yaw + ny, 1.0))
+        if s < 1400.0:
+            hx, hy, _ = md_off(p, 6.4)
+            light = spawn(unreal.PointLight, md_w(hx, hy, 8.2), label="MDLamp")
+            lc = light.get_component_by_class(unreal.PointLightComponent)
+            lc.set_editor_property("intensity", 2600.0)
+            lc.set_editor_property("attenuation_radius", 2200.0)
+            lc.set_editor_property("light_color", unreal.Color(r=255, g=168, b=92, a=255))
+            lc.set_editor_property("cast_shadows", False)
+    # Art Deco row across the road (near), then the bay's towers further round
+    deco = [f"ArtDeco_Apt_{i:02d}" for i in range(1, 6)]
+    p_all = md_path(1.0)
+    i = int((60.0))
+    while i < len(p_all):
+        p = p_all[i]
+        x, y, yaw, s = p
+        if s < 1700.0:
+            n = R.choice(deco)
+            w = (size_of(n).x or 2200.0) / 100.0
+            c = p_all[min(len(p_all) - 1, i + int(w / 2))]
+            bx, by, _ = md_off(c, 40.5)
+            sc.add(n, xf(md_w(bx, by).x, md_w(bx, by).y, 0, c[2] + ny))
+            tx, ty, _ = md_off(c, 36.0, along=R.uniform(-4, 4))
+            props.append((R.choice(["PH_island_tree_02", "PH_jacaranda_tree", "PH_island_tree_02"]), md_w(tx, ty).x, md_w(tx, ty).y, 0,
+                          R.uniform(0, 360), R.uniform(0.8, 1.1)))
+            i += int(w + R.uniform(3, 8))
+        else:
+            n = R.choice(TOWERS + deco)
+            bx, by, _ = md_off(p, R.uniform(45, 140))
+            sc.add(n, xf(md_w(bx, by).x, md_w(bx, by).y, 0, p[2] + ny, R.uniform(0.8, 1.2)), collision=False)
+            i += int(R.uniform(22, 40))
+    # Nariman Point at the south end: the Air India building and the hotel slabs
+    sc.add("Tower_AirIndia", xf(*vt(md_w(-470, 62)), ny + 8.0), collision=False)
+    for (tx, ty, n, sc_) in ((-560, 150, "Tower_Highrise_05", 1.1), (-620, 95, "Tower_Highrise_06", 0.95), (-700, 60, "Tower_Highrise_02", 1.0),
+                            (-540, 230, "Tower_Highrise_08", 1.0)):
+        sc.add(n, xf(*vt(md_w(tx, ty)), ny + R.uniform(-10, 10), sc_), collision=False)
+    # Malabar Hill closing the bay, with towers on it
+    ex = MD_STRAIGHT[1] + MD_R * math.sin(math.radians(MD_ARC_DEG))
+    ey = -MD_R + MD_R * math.cos(math.radians(MD_ARC_DEG))
+    hx, hy = ex + 120.0, ey - 330.0
+    sc.add("Hill_Malabar", xf(*vt(md_w(hx, hy)), ny - 60.0), collision=False)
+    for k in range(18):
+        u, v = R.uniform(-0.75, 0.75), R.uniform(-0.6, 0.6)
+        a = math.radians(-60.0)
+        px, py = hx + u * 450 * math.cos(a) - v * 225 * math.sin(a), hy + u * 450 * math.sin(a) + v * 225 * math.cos(a)
+        h = 48 * max(0.0, 1 - u * u) * max(0.0, 1 - v * v)
+        sc.add(R.choice(TOWERS), xf(*vt(md_w(px, py, h * 0.8 - 2)), ny + R.uniform(0, 90), R.uniform(0.7, 1.15)), collision=False)
+    # the sea
+    sea = spawn(unreal.StaticMeshActor, md_w(600, -3000, -2.6), label="ArabianSea")
+    smc = sea.get_editor_property("static_mesh_component")
+    smc.set_editor_property("static_mesh", unreal.load_asset("/Engine/BasicShapes/Plane"))
+    smc.set_material(0, sea_material())
+    sea.set_actor_scale3d(unreal.Vector(7000, 7000, 1))
+    sea.set_actor_rotation(unreal.Rotator(roll=0, pitch=0, yaw=ny), False)
+    smc.set_editor_property("cast_shadow", False)
+    # people: on the sea wall facing the sunset, couples and families on the walkway
+    for p in md_path(2.5):
+        x, y, yaw, s = p
+        if s > 1100.0:
+            break
+        if abs(x - SHANKAR_MD[0]) < 4.0 and s < 950:
+            continue
+        r = R.random()
+        if r < 0.42:
+            if R.random() < 0.65:
+                sx, sy, _ = md_off(p, -0.25)
+                spots.append({"loc": (md_w(sx, sy).x, md_w(sx, sy).y, 2.0), "yaw": yaw + ny - 90 + R.uniform(-15, 15), "mode": "Sit", "priority": 1.2})
+            else:
+                sx, sy, _ = md_off(p, 1.95)
+                spots.append({"loc": (md_w(sx, sy).x, md_w(sx, sy).y, 2.0), "yaw": yaw + ny + 90 + R.uniform(-20, 20), "mode": "Sit", "priority": 1.0})
+        elif r < 0.55:
+            sx, sy, _ = md_off(p, R.uniform(3.0, 6.0))
+            spots.append({"loc": (md_w(sx, sy).x, md_w(sx, sy).y, 0), "yaw": yaw + ny - 90 + R.uniform(-40, 40), "mode": "Talk", "priority": 0.9})
+    for a0, a1 in ((MD_STRAIGHT[0], MD_STRAIGHT[1]),):
+        for off, w in ((4.2, 0.6), (6.6, 0.4)):
+            lanes.append({"start": vt(md_w(a0, off)), "end": vt(md_w(a1, off)), "width": 150, "weight": w})
+    # traffic on the straight stretch (keeps left: heading +X local the left side is -Y local, the sea side)
+    road_y = 8.6 + 10.5 + 0.7
+    traffic = spawn(unreal.GITraffic, md_w(-300, road_y), unreal.Rotator(roll=0, pitch=0, yaw=ny), label="MarineDriveTraffic")
+    lanes_t = []
+    for y, d in ((-700, 1.0), (-350, 1.0), (350, -1.0), (700, -1.0)):
+        tl = unreal.GITrafficLane()
+        tl.set_editor_property("y", float(y))
+        tl.set_editor_property("z", -11.0)
+        tl.set_editor_property("direction", d)
+        tl.set_editor_property("count", 5)
+        lanes_t.append(tl)
+    traffic.set_editor_property("lanes", lanes_t)
+    traffic.set_editor_property("min_x", -20000.0)
+    traffic.set_editor_property("max_x", 70000.0)
+    traffic.set_editor_property("speed", 900.0)
+    fleet = [(mesh(n), yv) for n, yv in FLEET if mesh(n) and n not in ("ScooterActiva",)]
+    traffic.set_editor_property("vehicle_meshes", [m for m, _ in fleet])
+    traffic.set_editor_property("vehicle_mesh_yaws", [float(yv) for _, yv in fleet])
+    log("marine drive", len(path10), "wall segments")
+
+
+def sea_material():
+    name = "MI_SeaArabian"
+    path = f"{MI}/{name}"
+    mi = load(path)
+    if not mi:
+        mi = unreal.AssetToolsHelpers.get_asset_tools().create_asset(name, MI, unreal.MaterialInstanceConstant,
+                                                                    unreal.MaterialInstanceConstantFactoryNew())
+    mel = unreal.MaterialEditingLibrary
+    mel.set_material_instance_parent(mi, load(f"{MAT_DIR}/M_Water"))
+    for k, v in (("WaterColor", (0.035, 0.06, 0.07)), ("Scattering", (0.03, 0.065, 0.075)), ("Absorption", (0.42, 0.16, 0.11))):
+        mel.set_material_instance_vector_parameter_value(mi, k, unreal.LinearColor(v[0], v[1], v[2], 1.0))
+    mel.set_material_instance_scalar_parameter_value(mi, "NormalStrength", 0.6)
+    mel.update_material_instance(mi)
+    unreal.EditorAssetLibrary.save_loaded_asset(mi)
+    return mi
 
 
 def build_lighting_mumbai():
@@ -826,7 +1019,7 @@ MODE = {"idle": unreal.GIPoseMode.LOCOMOTION, "talk": unreal.GIPoseMode.TALK, "s
         "cheer": unreal.GIPoseMode.CHEER, "angry": unreal.GIPoseMode.ANGRY}
 
 
-def story_lines(scene):
+def story_lines(scene, cams=None):
     out = []
     for i, (spk, lis, roman, _dev, gesture, shot) in enumerate(_lines.SCENES[scene]):
         l = unreal.GIStoryLine()
@@ -842,6 +1035,12 @@ def story_lines(scene):
         l.set_editor_property("gesture", GESTURE[gesture])
         if shot:
             l.set_editor_property("shot", shot)
+        if cams and i in cams:
+            f, t, look, fov = cams[i]
+            l.set_editor_property("cam_from", md_w(*f))
+            l.set_editor_property("cam_to", md_w(*t))
+            l.set_editor_property("cam_look", md_w(*look))
+            l.set_editor_property("cam_fov", float(fov))
         out.append(l)
     return out
 
@@ -863,7 +1062,7 @@ def cast(entries):
 
 
 def beat(kind, objective="", npc="", loc=None, radius=300.0, path=None, speed=150.0, cast_=None, scene=None, hour=-1.0,
-         rain=-1, fade="", limit=0.0, banner="", reward=0, chapter="", chapter_sub="", retry=None):
+         rain=-1, fade="", limit=0.0, banner="", reward=0, chapter="", chapter_sub="", retry=None, cams=None):
     b = unreal.GIStoryBeat()
     b.set_editor_property("kind", kind)
     b.set_editor_property("objective", objective)
@@ -878,7 +1077,7 @@ def beat(kind, objective="", npc="", loc=None, radius=300.0, path=None, speed=15
     if cast_:
         b.set_editor_property("cast", cast(cast_))
     if scene:
-        b.set_editor_property("lines", story_lines(scene))
+        b.set_editor_property("lines", story_lines(scene, cams))
     b.set_editor_property("hour", float(hour))
     b.set_editor_property("rain", int(rain))
     b.set_editor_property("fade_text", fade)
@@ -898,7 +1097,7 @@ def build_story():
     K = unreal.GIBeatKind
     st = spawn(unreal.GIStory, unreal.Vector(0, 0, 0), label="Story_Saraswati")
     actors = []
-    for aid, name, mesh_name, scale in (("lakshmi", "Lakshmi Tai", "SK_WomanMarathi", 1.0), ("chhotu", "Chhotu", "SK_KidOrange", 0.78),
+    for aid, name, mesh_name, scale in (("shankar", "Shankar", "SK_PlayerDhoti", 1.0), ("lakshmi", "Lakshmi Tai", "SK_WomanMarathi", 1.0), ("chhotu", "Chhotu", "SK_KidOrange", 0.78),
                                         ("kamla", "Kamla Mausi", "SK_WomanPinkSaree", 1.0), ("pappu", "Pappu Chai Wala", "SK_ManKurta", 1.0),
                                         ("raghu", "Raghu", "SK_ManKurta2", 1.0), ("goon", "Bhau ka aadmi", "SK_ManShirt", 1.0),
                                         ("bhau", "Bhau", "SK_ManPolo", 1.04), ("saraswati", "Saraswati", "SK_WomanSareeYellow", 1.0)):
@@ -926,10 +1125,30 @@ def build_story():
     tail = [(raghu_tapri[0], raghu_tapri[1], 0), (raghu_tapri[0] - 300, SHOP_N_EDGE - 150, 0), (GATE_X + 250, SHOP_N_EDGE - 150, 0),
             (GATE_X, SHOP_N_EDGE + 200, 0), (GATE_X, CHAWL_S_EDGE - 200, 0), (GATE_X + 300, CHAWL_Y, 0), (PANDAL_X - 550, CHAWL_Y, 0)]
 
+    # Marine Drive at sunset: Shankar on the sea wall. Hand-placed cameras (local metres: from, dolly-to, look, lens).
+    sx, sy, sz = SHANKAR_MD
+    sun = (0.454, -0.891)          # where the sun sets, in the Marine Drive frame
+    marine_cams = {
+        0: ((-20, 6, 1.7), (-4, 5.4, 1.75), (846, -494, 1.5), 72),                                   # along the promenade into the sun
+        1: ((sx - 1.1, 1.9, 1.85), (sx - 0.8, 1.55, 1.8), (sx + sun[0] * 90, sy + sun[1] * 90, 0.9), 50),  # behind him, the sunset
+        2: ((sx + 1.3, sy - 0.2, 1.3), (sx + 1.15, sy - 0.17, 1.3), (sx, sy, 1.28), 38),             # profile
+        3: ((sx + 12, 1.1, 1.05), (sx + 10.5, 1.0, 1.05), (sx, sy, 0.95), 40),                        # low along the wall top
+        4: ((sx + 1.15, sy - 1.25, 1.45), (sx + 1.0, sy - 1.1, 1.45), (sx, sy - 0.05, 1.3), 40),      # face in the last light
+        5: ((sx + 8, -7.5, -1.8), (sx + 11, -7.3, -1.7), (sx + 60, -3.0, -0.4), 55),                # tetrapods and the water
+        6: ((sx - 25, 26, 13), (sx - 22, 26, 14), (sx + 270, -300, 0), 62),                           # the bay, the city
+        7: ((sx + 1.6, sy - 1.6, 1.5), (sx + 1.4, sy - 1.4, 1.48), (sx, sy - 0.05, 1.32), 40),        # resolve
+        8: ((sx - 4, 3, 2.5), (sx - 35, 30, 55), (sx + 360, -450, 0), 62),                            # crane up over the necklace
+    }
+    md_shankar = md_w(*SHANKAR_MD)
     beats = [
-        # 0 - prologue: dawn in the blue lane
-        beat(K.SCENE, scene="prologue", hour=7.0, chapter="SARASWATI KAHAN HAI?", chapter_sub="Adhyay 1 - Neeli Gali",
+        # 0 - Marine Drive at sunset
+        beat(K.SCENE, scene="marine", hour=18.35, chapter="SARASWATI KAHAN HAI?", chapter_sub="Marine Drive, Mumbai", cams=marine_cams,
+             cast_=[("player", *vt(md_w(sx - 6, 5.0)), MD_YAW, "idle", False),
+                    ("shankar", md_shankar.x, md_shankar.y, md_shankar.z, MD_YAW - 90, "sit")]),
+        # 1 - next morning in the blue lane
+        beat(K.SCENE, scene="lane_arrive", hour=7.0, fade="Agli subah...\nDharavi", chapter="ADHYAY 1", chapter_sub="Neeli Gali",
              cast_=[("player", -250, -20, 0, 0),
+                    ("shankar", 0, 0, -5000, 0, "idle", False),
                     ("lakshmi", LAKSHMI[0], LAKSHMI[1], 0, -90, "idle"),
                     ("chhotu", CHHOTU[0], CHHOTU[1], 0, -90, "cheer"),
                     ("kamla", KAMLA[0], KAMLA[1], 0, 0, "talk"),
@@ -945,7 +1164,7 @@ def build_story():
         # 3 - Chhotu's shortcut through the gallis
         beat(K.FOLLOW, "Chhotu ke peeche chalo - woh galiyon se mandi ka shortcut jaanta hai.", npc="chhotu", path=follow, speed=330,
              scene="chhotu_arrive", retry=(3000, 900, 0, 90)),
-        # 4 - Kamla Mausi at the sabzi mandi
+        # 4 - Kamla Mausi at the sabzi mandi (indices below are +1 now that Marine Drive opens the story)
         beat(K.TALK_TO, "Kamla Mausi se Saraswati ke baare mein poochho.", npc="kamla", scene="kamla",
              chapter="ADHYAY 2", chapter_sub="Sabzi Mandi"),
         # 5 - Pappu's tapri on the main road
@@ -1009,7 +1228,11 @@ def place(sc, props):
         collision = not name.startswith(("Trial_Laundry", "Laundry_", "Wire_", "Neon_", "Tarp_", "PH_grass", "Litter_", "Dog",
                                          "Festoon_", "Road_Zebra", "Garbage_"))
         roll = 7.0 if name == "BicycleIndian" else 0.0
-        sc.add(name, xf(x, y, z, yaw, s, roll=roll), collision=collision, cull=cull, shadow=not name.startswith(("Litter_", "Road_Zebra")))
+        pitch = 0.0
+        if isinstance(yaw, tuple):          # ("rot", yaw, pitch, roll) - tumbled tetrapods
+            _, yaw, pitch, roll = yaw
+        sc.add(name, xf(x, y, z, yaw, s, pitch=pitch, roll=roll), collision=collision, cull=cull,
+               shadow=not name.startswith(("Litter_", "Road_Zebra")))
 
 
 def main():
@@ -1034,6 +1257,7 @@ def main():
     build_rail(city, props, spots, lanes)
     build_boundary(city, props)
     build_link_roads(city, props, spots, lanes)
+    build_marine_drive(city, props, spots, lanes)
     build_skyline(sky)
     for sc in (ground, houses, city, sky):
         sc.spawn()
