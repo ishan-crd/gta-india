@@ -58,6 +58,9 @@ def set_nanite(mesh, enabled, full_res_fallback=False):
     mesh.set_editor_property("nanite_settings", ns)
 
 
+SOLID_PREFIXES = ("Trial_House", "Shanty_", "Tenement_", "Shack_", "Tower_")
+
+
 def set_complex_collision(mesh):
     bs = mesh.get_editor_property("body_setup")
     if bs:
@@ -88,7 +91,13 @@ def import_kit():
             warn("kit import failed", f)
             continue
         assign_slot_materials(mesh)
-        set_complex_collision(mesh)
+        if f.startswith(SOLID_PREFIXES):
+            # box colliders from the kit (UCX): walls you can't slip into
+            bs = mesh.get_editor_property("body_setup")
+            if bs:
+                bs.set_editor_property("collision_trace_flag", unreal.CollisionTraceFlag.CTF_USE_DEFAULT)
+        else:
+            set_complex_collision(mesh)
         set_nanite(mesh, True, full_res_fallback=True)
         log("kit", f)
 

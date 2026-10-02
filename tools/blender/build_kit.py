@@ -71,6 +71,24 @@ def merge(out):
     print('MANIFEST', len(assets), 'assets')
 
 
+# Slum buildings get simple box colliders instead of their render mesh, so open doorways, gaps under
+# the eaves and ladders can't trap the player: the body (facade plane Y=0 back to the rear wall, ground
+# to roof) plus a low step for the raised ota in front of it.
+SOLID_BUILDINGS = {'building_trial', 'building_dharavi', 'building_mumbai'}
+
+
+def solid_building_hulls(st):
+    (x0, y0, z0), (x1, y1, z1) = st['min'], st['max']
+    x0, x1 = x0 + 0.02, x1 - 0.02
+
+    def box(a, b, c, d, e, f):
+        return [(x, y, z) for x in (a, b) for y in (c, d) for z in (e, f)]
+    hulls = [box(x0, x1, 0.0, y1, max(z0, 0.0), z1)]
+    if y0 < -0.1:
+        hulls.append(box(x0, x1, max(y0, -0.7), 0.0, 0.0, 0.24))
+    return hulls
+
+
 def main():
     a = parse()
     out = os.path.expanduser(a.out)
@@ -94,8 +112,10 @@ def main():
             res = r['fn']()
             mb, hulls = res[0], res[1]
             ob = KE.build_object(name, mb)
-            cols = KE.build_collision(name, hulls) if hulls else []
             st = KE.mesh_stats(ob)
+            if not hulls and r['category'] in SOLID_BUILDINGS:
+                hulls = solid_building_hulls(st)
+            cols = KE.build_collision(name, hulls) if hulls else []
             path = os.path.join(out, name + '.fbx')
             if not a.no_export:
                 KE.export_fbx(ob, cols, path)

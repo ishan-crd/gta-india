@@ -282,9 +282,18 @@ bool AGIStory::GetTarget(FVector& Out) const
 	case EGIBeatKind::Tail:
 		Out = MoverPos;
 		return true;
+	case EGIBeatKind::ReturnBall:
+		for (TActorIterator<AGICricketGame> It(GetWorld()); It; ++It)
+		{
+			if (It->GetWaitingBall(Out))
+			{
+				return true;
+			}
+		}
+		Out = B.Location;
+		return true;
 	case EGIBeatKind::Reach:
 	case EGIBeatKind::Chai:
-	case EGIBeatKind::ReturnBall:
 		Out = B.Location;
 		return true;
 	default:
@@ -1260,6 +1269,35 @@ void AGIStory::Tick(float DeltaSeconds)
 		if (Player->bReturnedBall)
 		{
 			CompleteBeat();
+			break;
+		}
+		{
+			// make it happen: once you're at the pitch the next shot comes your way; the ball gets the marker
+			bool bWaiting = false;
+			for (TActorIterator<AGICricketGame> It(GetWorld()); It; ++It)
+			{
+				FVector Ball;
+				if (It->GetWaitingBall(Ball))
+				{
+					bWaiting = true;
+				}
+				else if (FVector::Dist2D(P, B.Location) < B.Radius + 300.f && FVector::Dist2D(P, It->GetActorLocation()) < 2400.f)
+				{
+					It->ForceNextToPlayer();
+				}
+			}
+			if (bWaiting)
+			{
+				Warning = TEXT("Ball tumhari taraf aayi! Uske paas jao aur wapas phenko (E)");
+			}
+			else if (FVector::Dist2D(P, B.Location) < B.Radius + 300.f)
+			{
+				Warning = TEXT("Ruko... agla shot tumhari taraf aayega");
+			}
+			else
+			{
+				Warning.Reset();
+			}
 		}
 		break;
 	case EGIBeatKind::Follow:

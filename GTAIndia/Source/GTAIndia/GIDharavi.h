@@ -81,6 +81,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cricket") int32 NumFielders = 5;
 
 	bool GetWaitingBall(FVector& Out) const;
+	/** The next hit goes to the player (story: "return the kids' ball"). */
+	void ForceNextToPlayer() { ToPlayerCooldown = 0.f; }
 	bool WantsBallFromPlayer(const AGIPlayerCharacter* Player) const;
 	void PlayerReturnsBall(AGIPlayerCharacter* Player);
 
